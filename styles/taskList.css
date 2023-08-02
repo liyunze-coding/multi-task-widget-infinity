@@ -1,0 +1,123 @@
+:root {
+  --task-list-width: 400px;
+  --task-list-height: 300px;
+  --task-list-background-color: rgba(0, 0, 0, 0.8);
+  --task-list-border-width: 2px;
+  --task-list-border-color: white;
+  --task-list-border-radius: 5px;
+  --task-list-horizontal-padding: 0px;
+  --task-list-vertical-padding: 0px;
+  --header-horizontal-padding: 10px;
+  --header-vertical-padding: 10px;
+  --header-background-color: rgba(0, 0, 0, 0.8);
+  --header-border-width: 2px;
+  --header-border-color: white;
+  --header-border-radius: 5px;
+  --header-font-size: 20px;
+  --header-font-family: sans-serif;
+  --header-font-color: white;
+  --header-font-weight: bold;
+  --body-background-color: rgba(0, 0, 0, 0.7);
+  --body-border-width: 5px;
+  --body-border-color: white;
+  --body-border-radius: 5px;
+  --line-height: 1.5;
+  --username-font-weight: bold;
+  --task-background-color: rgba(0, 0, 0, 0.7);
+  --task-font-family: sans-serif;
+  --task-font-size: 25px;
+  --task-font-color: white;
+  --task-border-color: black;
+  --task-border-width: 0px;
+  --task-border-radius: 5px;
+  --task-horizontal-padding: 0px;
+  --task-vertical-padding: 0px;
+  --task-margin-bottom: 5px;
+  --task-horizontal-padding: 5px;
+  --task-vertical-padding: 5px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: gray;
+}
+
+#main-container {
+  width: var(--task-list-width);
+  height: var(--task-list-height);
+  display: flex;
+  flex-direction: column;
+  padding: var(--task-list-vertical-padding) var(--task-list-horizontal-padding);
+  background-color: var(--task-list-background-color);
+  border: solid var(--task-list-border-width) var(--task-list-border-color);
+  border-radius: var(--task-list-border-radius);
+}
+#main-container .header {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--header-vertical-padding) var(--header-horizontal-padding);
+  border: solid var(--header-border-width) var(--header-border-color);
+  border-radius: var(--header-border-radius);
+  color: var(--header-font-color);
+  background: var(--header-background-color);
+  font-family: var(--header-font-family);
+  font-size: var(--header-font-size);
+  font-weight: var(--header-font-weight);
+}
+#main-container .header .title {
+  transition: opacity 0.5s ease;
+}
+#main-container .header .fade {
+  opacity: 0;
+}
+#main-container .task-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--body-background-color);
+  color: var(--task-font-color);
+  font-family: var(--task-font-family);
+  font-size: var(--task-font-size);
+  line-height: var(--line-height);
+  border: var(--body-border-width) solid var(--body-border-color);
+  border-radius: var(--body-border-radius);
+  z-index: 1;
+}
+#main-container .task-wrapper .task-container {
+  position: absolute;
+  width: inherit;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+#main-container .task-wrapper .task-container .task {
+  padding: var(--task-vertical-padding) var(--task-horizontal-padding);
+  background: var(--task-background-color);
+  margin-bottom: var(--task-margin-bottom);
+  width: var(--task-width);
+  border: solid var(--task-border-width) var(--task-border-color);
+  border-radius: var(--task-border-radius);
+}
+#main-container .task-wrapper .task-container .task .username {
+  font-weight: var(--username-font-weight);
+}
+#main-container .task-wrapper .task-container .task .user-tasks {
+  list-style-position: inside;
+}
+#main-container .task-wrapper .task-container .task .user-tasks .todo {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#main-container .task-wrapper .task-container .task .user-tasks .done {
+  text-decoration: line-through;
+}/*# sourceMappingURL=taskList.css.map */
