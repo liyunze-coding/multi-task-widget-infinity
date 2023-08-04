@@ -233,6 +233,26 @@ function isInt(value) {
 }
 
 // 0: user has no tasks
+// 1: success
+function markOwnTaskDone(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return 0;
+	}
+
+	let incompleteUserTasks = tasks[username].todos.filter((t) => !t.done);
+
+	// replace user's task with incomplete tasks
+	tasks[username].todos = incompleteUserTasks;
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	renderTaskListToDOM();
+
+	return 1;
+}
+
+// 0: user has no tasks
 // 1: invalid input
 // task: succcess
 function markTaskDone(username, task) {
@@ -354,18 +374,18 @@ function checkTasks(username) {
 	reply = reply.slice(0, -3);
 
 	// format completed tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	reply += `\n|| completed tasks (${completedTasks.length}) : `;
+	// reply += `\n|| completed tasks (${completedTasks.length}) : `;
 
-	for (let j = 0; j < completedTasks.length; j++) {
-		taskIndex =
-			tasks[username].todos.findIndex(
-				(t) =>
-					t.text.toLowerCase() ===
-					completedTasks[j].text.toLowerCase()
-			) + 1;
-		reply += `${taskIndex}. ${completedTasks[j].text} | `;
-	}
-	reply = reply.slice(0, -3);
+	// for (let j = 0; j < completedTasks.length; j++) {
+	// 	taskIndex =
+	// 		tasks[username].todos.findIndex(
+	// 			(t) =>
+	// 				t.text.toLowerCase() ===
+	// 				completedTasks[j].text.toLowerCase()
+	// 		) + 1;
+	// 	reply += `${taskIndex}. ${completedTasks[j].text} | `;
+	// }
+	// reply = reply.slice(0, -3);
 
 	return reply;
 }
@@ -424,8 +444,6 @@ function smutOnly(streamer) {
 
 function renderTaskListToDOM() {
 	const tasks = JSON.parse(localStorage.tasks);
-
-	// console.log(tasks);
 
 	const taskContainers = document.querySelectorAll(".task-container");
 	taskContainers.forEach((taskList) => {
@@ -525,8 +543,6 @@ async function checkToAnimate() {
 
 	let taskWrapper = document.querySelector(".task-wrapper");
 	let taskWrapperHeight = taskWrapper.clientHeight;
-
-	console.log(taskContainerHeight > taskWrapperHeight);
 
 	// scroll task wrapper up and down once
 	if (taskContainerHeight > taskWrapperHeight) {

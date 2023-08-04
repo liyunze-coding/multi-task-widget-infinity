@@ -135,6 +135,16 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			clearAllTasks();
 			respond(responses.clearedAll, params);
 		}
+	} else if (commands.clearMyDoneCommands.includes(command)) {
+		let response = markOwnTaskDone(user);
+
+		if (response === 0) {
+			// no tasks
+			respond(responses.noTask, params);
+			return;
+		}
+
+		respond(responses.clearedMyDone, params);
 	} else if (commands.helpCommands.includes(command)) {
 		respond(responses.help, params);
 	} else if (commands.additionalCommands[command]) {

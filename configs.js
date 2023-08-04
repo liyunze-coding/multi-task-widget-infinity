@@ -74,7 +74,7 @@ const configs = (function () {
 
 	const taskMarginBottom = "5px"; // px
 	const taskHorizontalPadding = "20px"; // px
-	const taskVerticalPadding = "10px";
+	const taskVerticalPadding = "10px"; // px
 
 	// Add task commands - please add commands in the exact format
 	const addTaskCommands = [
@@ -136,6 +136,9 @@ const configs = (function () {
 		"!check",
 	];
 
+	// Clear my done commands - please add commands in the exact format
+	const clearMyDoneCommands = ["!clearmydone"];
+
 	// Help commands - please add commands in the exact format
 	const helpCommands = [
 		"!taskh",
@@ -193,6 +196,7 @@ const configs = (function () {
 	const notMod = "Permission denied, {user}; Mods only";
 	const clearedAll = "All tasks have been cleared!";
 	const clearedDone = "All completed tasks have been cleared!";
+	const clearedMyDone = "All your completed tasks have been cleared!";
 	const specifyUser = "Try specifying a user to delete their tasks {user}";
 	const help = `{user} Use the following commands to help you out - !task !edit !remove !done. For mods, you can do !adel @user. More commmands here: https://github.com/liyunze-coding/Chat-Task-Tic-Overlay/blob/main/MultiTask.md/`;
 	// to edit check task command, go to
@@ -277,6 +281,7 @@ const configs = (function () {
 		finishTaskCommands,
 		helpCommands,
 		checkCommands,
+		clearMyDoneCommands,
 		adminDeleteCommands,
 		adminClearDoneCommands,
 		adminClearAllCommands,
@@ -298,6 +303,7 @@ const configs = (function () {
 		notMod,
 		help,
 		adminDeleteTasks,
+		clearedMyDone,
 		clearedAll,
 		clearedDone,
 		specifyUser,
