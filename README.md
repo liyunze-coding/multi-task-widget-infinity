@@ -160,10 +160,6 @@ Edit `configs.js` to edit the style of the task list
 
 `bodyBorderRadius`: how round the body border should be (px)
 
-`bodyHorizontalPadding`: horizontal padding of the body (px)
-
-`bodyVerticalPadding`: vertical padding of the body (px)
-
 ### task
 
 `lineHeight`: line height of the task (number)
