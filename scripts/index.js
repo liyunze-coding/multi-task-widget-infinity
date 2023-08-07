@@ -41,7 +41,8 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		} else if (addStatus === 2) {
 			// task has no content
 			respond(responses.noTaskContent, params);
-		} else if (addStatus === 3) {
+		} else {
+			params.task = addStatus;
 			// task added
 			respond(responses.taskAdded, params);
 		}

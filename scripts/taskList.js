@@ -152,7 +152,7 @@ function setupDB() {
 // 0: limit has reached
 // 1: duplicate task
 // 2: invalid input
-// 3: success
+// string (single or multiple tasks): success
 function addTask(username, userColor, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
@@ -183,11 +183,22 @@ function addTask(username, userColor, task) {
 		return 2;
 	}
 
+	// if task has commas
+	if (task.includes(",")) {
+		let tasksToAdd = task.split(",").map((t) => t.trim());
+		for (const t of tasksToAdd) {
+			tasks[username].todos.push({ text: t, done: false });
+		}
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		renderTaskListToDOM();
+		return tasksToAdd.join('", "');
+	}
+
 	tasks[username].todos.push({ text: task, done: false });
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
 
-	return 3;
+	return task;
 }
 
 // 0: user has no tasks

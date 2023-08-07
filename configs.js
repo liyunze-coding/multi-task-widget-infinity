@@ -175,7 +175,7 @@ const configs = (function () {
 	];
 
 	// Responses
-	const taskAdded = 'The task "{message}" has been added, {user}!';
+	const taskAdded = 'The task(s) "{task}" has been added, {user}!';
 	const noTaskAdded =
 		"Looks like you already hit the limit of incomplete tasks, {user}";
 	const noTaskContent = "Try using !task the-task-you-are-working-on {user}";
