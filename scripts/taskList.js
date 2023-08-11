@@ -13,6 +13,7 @@ const settings = configs.settings;
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
 let scrolling = false;
+let primaryAnimation, secondaryAnimation;
 
 function loadGoogleFont(font) {
 	WebFont.load({
@@ -183,22 +184,47 @@ function addTask(username, userColor, task) {
 		return 2;
 	}
 
+	let tasksFailedToAdd = [];
+
 	// if task has commas
 	if (task.includes(",")) {
 		let tasksToAdd = task.split(",").map((t) => t.trim());
+
+		if (
+			incompleteTasksCount(username) + tasksToAdd.length >
+				settings.limit &&
+			settings.enableLimit
+		) {
+			tasksFailedToAdd = tasksToAdd.slice(
+				settings.limit - incompleteTasksCount(username),
+				tasksToAdd.length
+			);
+
+			tasksToAdd = tasksToAdd.slice(
+				0,
+				settings.limit - incompleteTasksCount(username)
+			);
+		}
+
 		for (const t of tasksToAdd) {
 			tasks[username].todos.push({ text: t, done: false });
 		}
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
 		renderTaskListToDOM();
-		return tasksToAdd.join('", "');
+		return {
+			task: tasksToAdd.join('", "'),
+			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+		};
 	}
 
 	tasks[username].todos.push({ text: task, done: false });
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
 
-	return task;
+	return {
+		task: task,
+		tasksFailedToAdd: "",
+	};
 }
 
 // 0: user has no tasks
@@ -206,32 +232,103 @@ function addTask(username, userColor, task) {
 // removed task: success
 function removeTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return 0;
 	}
-	let index = tasks[username].todos.findIndex(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
-	if (index === -1) {
-		if (isInt(task)) {
-			index = parseInt(task) - 1; // ACTUAL INDEX
-		} else if (tasks[username].todos.length === 1) {
-			index = 0;
-		} else {
-			return 1;
-		}
 
-		if (index < 0 || index > tasks[username].todos.length - 1) {
-			return 1;
-		}
+	// match regex: integers separated by space e.g. '1 2 3 4'
+	if (task.match(/^(\d+ )*\d+$/)) {
+		// insert commas between integers
+		task = task.replace(/(\d+)/g, "$1,");
+		// remove trailing comma
+		task = task.slice(0, -1);
 	}
-	let removedTask = tasks[username].todos[index].text;
+	let removedTaskIndex = [];
+	let tasksRemoved = [];
+	let tasksFailedToRemove = [];
 
-	tasks[username].todos.splice(index, 1);
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
+	// check if there's a comma in the task (multiple tasks)
+	if (task.includes(",")) {
+		let tasksToRemove = task.split(",").map((t) => t.trim());
+		for (const t of tasksToRemove) {
+			let index = tasks[username].todos.findIndex(
+				(task) => task.text.toLowerCase() === t.toLowerCase()
+			);
 
-	return removedTask;
+			if (index === -1) {
+				if (isInt(t)) {
+					index = parseInt(t) - 1; // ACTUAL INDEX
+				} else if (incompleteTasks.length) {
+					index = tasks[username].todos.findIndex((t) => !t.done);
+					tasksRemoved.push(tasks[username].todos[index].text);
+					removedTaskIndex.push(index);
+				} else {
+					tasksFailedToRemove.push(t);
+					continue;
+				}
+
+				if (index < 0 || index > tasks[username].todos.length - 1) {
+					tasksFailedToRemove.push(t);
+					continue;
+				} else {
+					tasksRemoved.push(tasks[username].todos[index].text);
+					removedTaskIndex.push(index);
+				}
+			} else {
+				tasksRemoved.push(tasks[username].todos[index].text);
+				removedTaskIndex.push(index);
+			}
+		}
+
+		if (tasksRemoved.length === 0) {
+			return 1;
+		}
+
+		// sort removedTaskIndex in descending order
+		removedTaskIndex.sort((a, b) => b - a);
+
+		// remove tasks from tasks array
+		for (const index of removedTaskIndex) {
+			tasks[username].todos.splice(index, 1);
+		}
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		renderTaskListToDOM();
+		return {
+			removedTasks: tasksRemoved.join('", "'),
+			failedTasks: tasksFailedToRemove.join('", "'),
+		};
+	} else {
+		let index = tasks[username].todos.findIndex(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		);
+
+		if (index === -1) {
+			if (isInt(task)) {
+				index = parseInt(task) - 1; // ACTUAL INDEX
+			} else if (incompleteTasks.length) {
+				index = tasks[username].todos.findIndex((t) => !t.done);
+			} else {
+				return 1;
+			}
+
+			if (index < 0 || index > tasks[username].todos.length - 1) {
+				return 1;
+			}
+		}
+
+		task = tasks[username].todos[index].text;
+
+		tasks[username].todos.splice(index, 1);
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		renderTaskListToDOM();
+		return {
+			removedTasks: task,
+			failedTasks: "",
+		};
+	}
 }
 
 // function to determine if string is integer
@@ -245,7 +342,7 @@ function isInt(value) {
 
 // 0: user has no tasks
 // 1: success
-function markOwnTaskDone(username) {
+function clearOwnDoneTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -268,42 +365,93 @@ function markOwnTaskDone(username) {
 // task: succcess
 function markTaskDone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
+	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return 0;
 	}
-	let index = tasks[username].todos.findIndex(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
 
-	// filter by t.done is false
-	let incompleteTaskCount = tasks[username].todos.filter(
-		(t) => !t.done
-	).length;
-	if (incompleteTaskCount === 1) {
-		index = tasks[username].todos.findIndex((t) => !t.done);
+	// match regex: integers separated by space e.g. '1 2 3 4'
+	if (task.match(/^(\d+ )*\d+$/)) {
+		// insert commas between integers
+		task = task.replace(/(\d+)/g, "$1,");
+		// remove trailing comma
+		task = task.slice(0, -1);
 	}
 
-	if (index === -1) {
-		if (isInt(task)) {
-			index = parseInt(task) - 1; // ACTUAL INDEX
-		} else {
+	let tasksMarkedComplete = [];
+	let tasksFailedToComplete = [];
+
+	// check if there's a comma in the task (multiple tasks)
+	if (task.includes(",")) {
+		let tasksToMarkDone = task.split(",").map((t) => t.trim());
+		for (const t of tasksToMarkDone) {
+			let index = tasks[username].todos.findIndex(
+				(task) => task.text.toLowerCase() === t.toLowerCase()
+			);
+
+			if (index === -1) {
+				if (isInt(t)) {
+					index = parseInt(t) - 1; // ACTUAL INDEX
+				} else if (incompleteTasks.length) {
+					index = tasks[username].todos.findIndex((t) => !t.done);
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
+				} else {
+					tasksFailedToComplete.push(t);
+					continue;
+				}
+
+				if (index < 0 || index > tasks[username].todos.length - 1) {
+					tasksFailedToComplete.push(t);
+					continue;
+				} else {
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
+				}
+			} else {
+				tasksMarkedComplete.push(tasks[username].todos[index].text);
+			}
+			tasks[username].todos[index].done = true;
+		}
+
+		if (tasksMarkedComplete.length === 0) {
 			return 1;
 		}
 
-		if (index < 0 || index > tasks[username].todos.length - 1) {
-			return 1;
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		renderTaskListToDOM();
+		return {
+			markedTasks: tasksMarkedComplete.join('", "'),
+			failedTasks: tasksFailedToComplete.join('", "'),
+		};
+	} else {
+		let index = tasks[username].todos.findIndex(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		);
+
+		if (index === -1) {
+			if (isInt(task)) {
+				index = parseInt(task) - 1; // ACTUAL INDEX
+			} else if (incompleteTasks.length) {
+				index = tasks[username].todos.findIndex((t) => !t.done);
+			} else {
+				return 1;
+			}
+
+			if (index < 0 || index > tasks[username].todos.length - 1) {
+				return 1;
+			}
 		}
+
+		task = tasks[username].todos[index].text;
+		tasks[username].todos[index].done = true;
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		renderTaskListToDOM();
+		return {
+			markedTasks: task,
+			failedTasks: "",
+		};
 	}
-
-	let completedTask = tasks[username].todos[index].text;
-
-	tasks[username].todos[index].done = true;
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
-
-	return completedTask;
 }
 
 // 0: user has no tasks
@@ -406,13 +554,7 @@ function incompleteTasksCount(username) {
 	if (!tasks[username]) {
 		return 0;
 	}
-	let count = 0;
-	for (const task of tasks[username].todos) {
-		if (!task.done) {
-			count++;
-		}
-	}
-	return count;
+	return tasks[username].todos.filter((t) => !t.done).length;
 }
 
 function clearUserTasks(username) {
@@ -421,6 +563,7 @@ function clearUserTasks(username) {
 		return;
 	}
 	tasks[username].todos = [];
+
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
 }
@@ -430,16 +573,22 @@ function clearAllDoneTasks() {
 	for (const user in tasks) {
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
+	cancelAnimation();
+	scrolling = false;
+	checkToAnimate();
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
 }
 
 function clearAllTasks() {
 	resetDB();
+	cancelAnimation();
+	scrolling = false;
+	checkToAnimate();
 	renderTaskListToDOM();
 }
 
-function smutOnly(streamer) {
+function clearAllExceptStreamer(streamer) {
 	// clear all tasks except for broadcasters
 	const tasks = JSON.parse(localStorage.tasks);
 	for (const user in tasks) {
@@ -449,7 +598,13 @@ function smutOnly(streamer) {
 	}
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
 	clearAllDoneTasks();
+
+	cancelAnimation();
+	scrolling = false;
+	checkToAnimate();
+
 	renderTaskListToDOM();
 }
 
@@ -522,28 +677,28 @@ function tests1() {
 	let listOfStreamers = [
 		`cloudydayzzz`,
 		`berryspace`,
-		`MohFocus`,
-		`xeno_hiraeth`,
-		`euphie___`,
-		`unknownnie`,
-		`theyolotato`,
-		`charliosaurus`,
-		`jutstreams`,
-		`mikewhatwhere`,
-		`studypaws`,
-		`pcc_lanezzz`,
-		`workwithjandj`,
-		`studylena`,
+		// `MohFocus`,
+		// `xeno_hiraeth`,
+		// `euphie___`,
+		// `unknownnie`,
+		// `theyolotato`,
+		// `charliosaurus`,
+		// `jutstreams`,
+		// `mikewhatwhere`,
+		// `studypaws`,
+		// `pcc_lanezzz`,
+		// `workwithjandj`,
+		// `studylena`,
 	];
 
 	for (let i = 0; i < listOfStreamers.length; i++) {
-		addTask(listOfStreamers[i], "#ffc0cb", `task ${i + 1}`);
-		addTask(listOfStreamers[i], "#ffc0cb", `another task ${i + 1}`);
+		addTask(
+			listOfStreamers[i],
+			"#ffc0cb",
+			`task 1, task 2, task 3, task 4, task 5`
+		);
+		markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
 	}
-}
-
-function tests2() {
-	smutOnly("theyolotato");
 }
 
 async function checkToAnimate() {
@@ -580,11 +735,11 @@ async function checkToAnimate() {
 				easing: "linear",
 			};
 
-			let primaryAnimation = document
+			primaryAnimation = document
 				.querySelector(".primary")
 				.animate(primaryKeyFrames, options);
 
-			let secondaryAnimation = document
+			secondaryAnimation = document
 				.querySelector(".secondary")
 				.animate(secondaryKeyFrames, options);
 
@@ -598,22 +753,25 @@ async function checkToAnimate() {
 			scrolling = false;
 			checkToAnimate();
 		}
-	} else if (!scrolling) {
+	} else if (scrolling) {
 		document.querySelector(".secondary").style.display = "none";
 
 		// cancel animations
-		document
-			.querySelector(".task-container")
-			.getAnimations()
-			.forEach((a) => {
-				a.cancel();
-			});
+		cancelAnimation();
 		scrolling = false;
 	}
 }
 
+function cancelAnimation() {
+	if (primaryAnimation && secondaryAnimation) {
+		primaryAnimation.cancel();
+		secondaryAnimation.cancel();
+	}
+}
+
 (function () {
-	setupDB();
+	resetDB();
+	tests1();
 	importStyles();
 	renderTaskListToDOM();
 })();
