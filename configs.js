@@ -3,7 +3,7 @@ const configs = (function () {
 
 	// settings
 	const enableLimit = true; // true or false
-	const limit = 20; // integer
+	const limit = 5; // integer
 
 	// animation
 	const scrollSpeed = 30; // milliseconds (DO NOT PUT BELOW 5, COMPUTER MIGHT CRASH) the lower the value, the faster the scroll
@@ -149,6 +149,14 @@ const configs = (function () {
 		"!help",
 	];
 
+	// Admin clear all except streamer - please add commands following the exact format
+	const adminClearNotStreamerCommands = [
+		"!clearnotstreamer",
+		"!aclearnotstreamer",
+		"!adminclearnotstreamer",
+		"!clearns",
+	];
+
 	// Admin delete - please add commands following the exact format
 	const adminDeleteCommands = [
 		"!taskadel",
@@ -179,14 +187,17 @@ const configs = (function () {
 	const noTaskAdded =
 		"Looks like you already hit the limit of incomplete tasks, {user}";
 	const noTaskContent = "Try using !task the-task-you-are-working-on {user}";
-	const taskDeleted = "Task '{task}' has been deleted successfully, {user}";
+	const taskDeleted = 'Task "{task}" has been deleted successfully, {user}';
 	const specifyTaskIndex = "Try specifying the index of the task {user}";
 
 	const duplicateTask =
 		"Looks like you already have the task '{message}' up there {user}!";
 
+	const clearTasksExceptBroadcaster =
+		"All tasks have been cleared except for the streamer's, {user}!";
+
 	const adminDeleteTasks = "All of {mentioned}'s tasks have been deleted";
-	const taskFinished = "Good job on finishing the task '{task}', {user}!";
+	const taskFinished = 'Good job on finishing the task "{task}", {user}!';
 	const taskEdited =
 		"Task '{originalTask}' has been edited to '{task}' successfully, {user}";
 	const noTaskEdit = "Try doing !edit [index] [new task] {user}";
@@ -283,6 +294,7 @@ const configs = (function () {
 		checkCommands,
 		clearMyDoneCommands,
 		adminDeleteCommands,
+		adminClearNotStreamerCommands,
 		adminClearDoneCommands,
 		adminClearAllCommands,
 		additionalCommands,
@@ -302,6 +314,7 @@ const configs = (function () {
 		noTaskA,
 		notMod,
 		help,
+		clearTasksExceptBroadcaster,
 		adminDeleteTasks,
 		clearedMyDone,
 		clearedAll,

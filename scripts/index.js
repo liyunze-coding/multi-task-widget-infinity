@@ -42,9 +42,15 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			// task has no content
 			respond(responses.noTaskContent, params);
 		} else {
-			params.task = addStatus;
+			let addResponse = responses.taskAdded;
+			params.task = addStatus.task;
+
+			if (addStatus.tasksFailedToAdd !== "") {
+				addResponse += ` | Failed to add task(s): "${addStatus.tasksFailedToAdd}"`;
+			}
+
 			// task added
-			respond(responses.taskAdded, params);
+			respond(addResponse, params);
 		}
 	} else if (commands.editTaskCommands.includes(command)) {
 		let editStatus = editTask(user, message);
@@ -71,8 +77,14 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			respond(responses.specifyTaskIndex, params);
 		} else {
 			// task deleted
-			params.task = removeStatus;
-			respond(responses.taskDeleted, params);
+			let deletedResponse = responses.taskDeleted;
+			params.task = removeStatus.removedTasks;
+
+			if (removeStatus.failedTasks !== "") {
+				deletedResponse += ` | Failed to delete task(s): "${removeStatus.failedTasks}"`;
+			}
+
+			respond(deletedResponse, params);
 		}
 	} else if (commands.finishTaskCommands.includes(command)) {
 		let finishStatus = markTaskDone(user, message);
@@ -85,8 +97,15 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			respond(responses.specifyTaskIndex, params);
 		} else {
 			// task finished
-			params.task = finishStatus;
-			respond(responses.taskFinished, params);
+			let finishedResponse = responses.taskFinished;
+
+			params.task = finishStatus.markedTasks;
+
+			if (finishStatus.failedTasks !== "") {
+				finishedResponse += ` | Failed to finish task(s): "${finishStatus.failedTasks}"`;
+			}
+
+			respond(finishedResponse, params);
 		}
 	} else if (commands.checkCommands.includes(command)) {
 		if (message === "") {
@@ -137,7 +156,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			respond(responses.clearedAll, params);
 		}
 	} else if (commands.clearMyDoneCommands.includes(command)) {
-		let response = markOwnTaskDone(user);
+		let response = clearOwnDoneTasks(user);
 
 		if (response === 0) {
 			// no tasks
@@ -146,6 +165,9 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 
 		respond(responses.clearedMyDone, params);
+	} else if (commands.adminClearNotStreamerCommands.includes(command)) {
+		clearAllExceptStreamer(auth.channel);
+		respond(responses.clearTasksExceptBroadcaster, params);
 	} else if (commands.helpCommands.includes(command)) {
 		respond(responses.help, params);
 	} else if (commands.additionalCommands[command]) {
