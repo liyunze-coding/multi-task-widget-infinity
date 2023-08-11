@@ -609,6 +609,11 @@ function clearAllExceptStreamer(streamer) {
 }
 
 function renderTaskListToDOM() {
+	if (scrolling) {
+		checkToAnimate();
+		return;
+	}
+
 	const tasks = JSON.parse(localStorage.tasks);
 
 	const taskContainers = document.querySelectorAll(".task-container");
@@ -751,9 +756,10 @@ async function checkToAnimate() {
 			await sleep(scrollingSpeed);
 
 			scrolling = false;
+			renderTaskListToDOM();
 			checkToAnimate();
 		}
-	} else if (scrolling) {
+	} else if (!scrolling) {
 		document.querySelector(".secondary").style.display = "none";
 
 		// cancel animations
