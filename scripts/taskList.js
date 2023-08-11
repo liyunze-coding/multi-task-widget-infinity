@@ -770,8 +770,7 @@ function cancelAnimation() {
 }
 
 (function () {
-	resetDB();
-	tests1();
+	setupDB();
 	importStyles();
 	renderTaskListToDOM();
 })();
