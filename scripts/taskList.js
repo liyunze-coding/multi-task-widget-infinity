@@ -210,7 +210,7 @@ function addTask(username, userColor, task) {
 			tasks[username].todos.push({ text: t, done: false });
 		}
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		renderTaskListToDOM();
+		checkToAnimate();
 		return {
 			task: tasksToAdd.join('", "'),
 			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
@@ -219,7 +219,7 @@ function addTask(username, userColor, task) {
 
 	tasks[username].todos.push({ text: task, done: false });
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
+	checkToAnimate();
 
 	return {
 		task: task,
@@ -565,7 +565,6 @@ function clearUserTasks(username) {
 	tasks[username].todos = [];
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
 }
 
 function clearAllDoneTasks() {
@@ -609,11 +608,6 @@ function clearAllExceptStreamer(streamer) {
 }
 
 function renderTaskListToDOM() {
-	if (scrolling) {
-		checkToAnimate();
-		return;
-	}
-
 	const tasks = JSON.parse(localStorage.tasks);
 
 	const taskContainers = document.querySelectorAll(".task-container");
@@ -776,7 +770,8 @@ function cancelAnimation() {
 }
 
 (function () {
-	setupDB();
+	resetDB();
+	tests1();
 	importStyles();
 	renderTaskListToDOM();
 })();
