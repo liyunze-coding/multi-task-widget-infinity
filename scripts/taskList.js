@@ -210,7 +210,9 @@ function addTask(username, userColor, task) {
 			tasks[username].todos.push({ text: t, done: false });
 		}
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		checkToAnimate();
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
 		return {
 			task: tasksToAdd.join('", "'),
 			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
@@ -219,7 +221,9 @@ function addTask(username, userColor, task) {
 
 	tasks[username].todos.push({ text: task, done: false });
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	checkToAnimate();
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
 
 	return {
 		task: task,
@@ -672,7 +676,7 @@ function sleep(ms) {
 }
 
 // unit tests
-function tests1() {
+async function tests1() {
 	let listOfStreamers = [
 		`cloudydayzzz`,
 		`berryspace`,
@@ -696,7 +700,7 @@ function tests1() {
 			"#ffc0cb",
 			`task 1, task 2, task 3, task 4, task 5`
 		);
-		markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
+		await sleep(1000);
 	}
 }
 
