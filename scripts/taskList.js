@@ -236,11 +236,11 @@ function addTask(username, userColor, task) {
 // removed task: success
 function removeTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return 0;
 	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	// match regex: integers separated by space e.g. '1 2 3 4'
 	if (task.match(/^(\d+ )*\d+$/)) {
@@ -373,12 +373,13 @@ function clearOwnDoneTasks(username) {
 // task: succcess
 function markTaskDone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return 0;
 	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	// match regex: integers separated by space e.g. '1 2 3 4'
 	if (task.match(/^(\d+ )*\d+$/)) {
@@ -782,9 +783,7 @@ function cancelAnimation() {
 }
 
 (function () {
-	// setupDB();
-	resetDB();
-	tests1();
+	setupDB();
 	importStyles();
 	renderTaskListToDOM();
 })();
