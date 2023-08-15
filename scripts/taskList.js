@@ -299,7 +299,9 @@ function removeTask(username, task) {
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		renderTaskListToDOM();
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
 		return {
 			removedTasks: tasksRemoved.join('", "'),
 			failedTasks: tasksFailedToRemove.join('", "'),
@@ -359,7 +361,9 @@ function clearOwnDoneTasks(username) {
 	tasks[username].todos = incompleteUserTasks;
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
 
 	return 1;
 }
@@ -423,7 +427,9 @@ function markTaskDone(username, task) {
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		renderTaskListToDOM();
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
 		return {
 			markedTasks: tasksMarkedComplete.join('", "'),
 			failedTasks: tasksFailedToComplete.join('", "'),
@@ -506,7 +512,9 @@ function editTask(username, message) {
 	tasks[username].todos[index].text = newTask;
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
 
 	return [originalTask, newTask];
 }
@@ -577,7 +585,6 @@ function clearAllDoneTasks() {
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
 	cancelAnimation();
-	scrolling = false;
 	checkToAnimate();
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
@@ -586,7 +593,6 @@ function clearAllDoneTasks() {
 function clearAllTasks() {
 	resetDB();
 	cancelAnimation();
-	scrolling = false;
 	checkToAnimate();
 	renderTaskListToDOM();
 }
@@ -605,7 +611,6 @@ function clearAllExceptStreamer(streamer) {
 	clearAllDoneTasks();
 
 	cancelAnimation();
-	scrolling = false;
 	checkToAnimate();
 
 	renderTaskListToDOM();
@@ -680,11 +685,11 @@ async function tests1() {
 	let listOfStreamers = [
 		`cloudydayzzz`,
 		`berryspace`,
-		// `MohFocus`,
-		// `xeno_hiraeth`,
-		// `euphie___`,
-		// `unknownnie`,
-		// `theyolotato`,
+		`MohFocus`,
+		`xeno_hiraeth`,
+		`euphie___`,
+		`unknownnie`,
+		`theyolotato`,
 		// `charliosaurus`,
 		// `jutstreams`,
 		// `mikewhatwhere`,
@@ -700,6 +705,8 @@ async function tests1() {
 			"#ffc0cb",
 			`task 1, task 2, task 3, task 4, task 5`
 		);
+		await sleep(1000);
+		markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
 		await sleep(1000);
 	}
 }
@@ -771,10 +778,13 @@ function cancelAnimation() {
 		primaryAnimation.cancel();
 		secondaryAnimation.cancel();
 	}
+	scrolling = false;
 }
 
 (function () {
-	setupDB();
+	// setupDB();
+	resetDB();
+	tests1();
 	importStyles();
 	renderTaskListToDOM();
 })();
