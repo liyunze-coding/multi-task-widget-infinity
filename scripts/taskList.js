@@ -851,11 +851,7 @@ async function checkToAnimate() {
 
 			scrolling = true;
 
-			await sleep(scrollingSpeed);
-
-			scrolling = false;
-			renderTaskListToDOM();
-			checkToAnimate();
+			addAnimationListeners();
 		}
 	} else if (!scrolling) {
 		document.querySelector(".secondary").style.display = "none";
@@ -866,9 +862,28 @@ async function checkToAnimate() {
 	}
 }
 
+function addAnimationListeners() {
+	if (primaryAnimation) {
+		primaryAnimation.addEventListener("finish", animationFinished);
+		primaryAnimation.addEventListener("cancel", animationFinished);
+	}
+	if (secondaryAnimation) {
+		secondaryAnimation.addEventListener("finish", animationFinished);
+		secondaryAnimation.addEventListener("cancel", animationFinished);
+	}
+}
+
+function animationFinished() {
+	scrolling = false;
+	renderTaskListToDOM();
+	checkToAnimate();
+}
+
 function cancelAnimation() {
-	if (primaryAnimation && secondaryAnimation) {
+	if (primaryAnimation) {
 		primaryAnimation.cancel();
+	}
+	if (secondaryAnimation) {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
