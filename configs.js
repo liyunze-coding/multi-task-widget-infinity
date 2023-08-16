@@ -3,7 +3,7 @@ const configs = (function () {
 
 	// settings
 	const enableLimit = true; // true or false
-	const limit = 5; // integer
+	const limit = 10; // integer
 
 	// animation
 	const scrollSpeed = 30; // milliseconds (DO NOT PUT BELOW 5, COMPUTER MIGHT CRASH) the lower the value, the faster the scroll
@@ -126,6 +126,20 @@ const configs = (function () {
 		"!finished",
 	];
 
+	// Unfinish task commands - please add commands in the exact format
+	const unfinishTaskCommands = [
+		"!tasku",
+		"!taskunfinish",
+		"!utask",
+		"!unfinishtask",
+		"!taskud",
+		"!taskundone",
+		"!undonetask",
+		"!undone",
+		"!unfinish",
+		"!unfinished",
+	];
+
 	// Check task commands - please add commands in the exact format
 	const checkCommands = [
 		"!taskc",
@@ -187,7 +201,8 @@ const configs = (function () {
 	const noTaskAdded =
 		"Looks like you already hit the limit of incomplete tasks, {user}";
 	const noTaskContent = "Try using !task the-task-you-are-working-on {user}";
-	const taskDeleted = 'Task "{task}" has been deleted successfully, {user}';
+	const taskDeleted =
+		'Task(s) "{task}" has been deleted successfully, {user}';
 	const specifyTaskIndex = "Try specifying the index of the task {user}";
 
 	const duplicateTask =
@@ -198,6 +213,8 @@ const configs = (function () {
 
 	const adminDeleteTasks = "All of {mentioned}'s tasks have been deleted";
 	const taskFinished = 'Good job on finishing the task "{task}", {user}!';
+	const taskUnfinished =
+		'Task(s) "{task}" has been unmarked as done, {user}!';
 	const taskEdited =
 		"Task '{originalTask}' has been edited to '{task}' successfully, {user}";
 	const noTaskEdit = "Try doing !edit [index] [new task] {user}";
@@ -290,6 +307,7 @@ const configs = (function () {
 		editTaskCommands,
 		deleteTaskCommands,
 		finishTaskCommands,
+		unfinishTaskCommands,
 		helpCommands,
 		checkCommands,
 		clearMyDoneCommands,
@@ -308,6 +326,7 @@ const configs = (function () {
 		specifyTaskIndex,
 		duplicateTask,
 		taskFinished,
+		taskUnfinished,
 		taskEdited,
 		noTaskEdit,
 		noTask,

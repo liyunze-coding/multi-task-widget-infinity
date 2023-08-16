@@ -107,6 +107,27 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
 			respond(finishedResponse, params);
 		}
+	} else if (commands.unfinishTaskCommands.includes(command)) {
+		let unfinishStatus = markTaskUndone(user, message);
+
+		if (unfinishStatus === 0) {
+			// user has no tasks
+			respond(responses.noTask, params);
+		} else if (unfinishStatus === 1) {
+			// invalid input
+			respond(responses.specifyTaskIndex, params);
+		} else {
+			// task unfinished
+			let unfinishedResponse = responses.taskUnfinished;
+
+			params.task = unfinishStatus.markedTasks;
+
+			if (unfinishStatus.failedTasks !== "") {
+				unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishStatus.failedTasks}"`;
+			}
+
+			respond(unfinishedResponse, params);
+		}
 	} else if (commands.checkCommands.includes(command)) {
 		if (message === "") {
 			let response = checkTasks(user);

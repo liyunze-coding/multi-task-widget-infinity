@@ -264,7 +264,7 @@ function removeTask(username, task) {
 			if (index === -1) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
-				} else if (incompleteTasks.length) {
+				} else if (incompleteTasks.length === 1) {
 					index = tasks[username].todos.findIndex((t) => !t.done);
 					tasksRemoved.push(tasks[username].todos[index].text);
 					removedTaskIndex.push(index);
@@ -314,7 +314,7 @@ function removeTask(username, task) {
 		if (index === -1) {
 			if (isInt(task)) {
 				index = parseInt(task) - 1; // ACTUAL INDEX
-			} else if (incompleteTasks.length) {
+			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
 				return 1;
@@ -403,7 +403,7 @@ function markTaskDone(username, task) {
 			if (index === -1) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
-				} else if (incompleteTasks.length) {
+				} else if (incompleteTasks.length === 1) {
 					index = tasks[username].todos.findIndex((t) => !t.done);
 					tasksMarkedComplete.push(tasks[username].todos[index].text);
 				} else {
@@ -443,7 +443,7 @@ function markTaskDone(username, task) {
 		if (index === -1) {
 			if (isInt(task)) {
 				index = parseInt(task) - 1; // ACTUAL INDEX
-			} else if (incompleteTasks.length) {
+			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
 				return 1;
@@ -462,6 +462,98 @@ function markTaskDone(username, task) {
 			markedTasks: task,
 			failedTasks: "",
 		};
+	}
+}
+
+function markTaskUndone(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	// user does not have any tasks
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return 0;
+	}
+
+	const completedTasks = tasks[username].todos.filter((t) => t.done);
+
+	// match regex: integers separated by space e.g. '1 2 3 4'
+	if (task.match(/^(\d+ )*\d+$/)) {
+		// insert commas between integers
+		task = task.replace(/(\d+)/g, "$1,");
+		// remove trailing comma
+		task = task.slice(0, -1);
+	}
+
+	let tasksMarkedUndone = [];
+	let tasksFailedToMarkUndone = [];
+
+	// check if there's a comma in the task (multiple tasks)
+	if (task.includes(",")) {
+		let tasksToMarkUndone = task.split(",").map((t) => t.trim());
+		for (const t of tasksToMarkUndone) {
+			let index = tasks[username].todos.findIndex(
+				(task) => task.text.toLowerCase() === t.toLowerCase()
+			);
+
+			if (index === -1) {
+				// user input isn't the task name
+				if (isInt(t)) {
+					index = parseInt(t) - 1; // ACTUAL INDEX
+				} else {
+					tasksFailedToMarkUndone.push(t);
+					continue;
+				}
+
+				if (index < 0 || index > tasks[username].todos.length - 1) {
+					tasksFailedToMarkUndone.push(t);
+					continue;
+				} else {
+					tasksMarkedUndone.push(tasks[username].todos[index].text);
+				}
+			} else {
+				tasksMarkedUndone.push(tasks[username].todos[index].text);
+			}
+			tasks[username].todos[index].done = false;
+		}
+
+		if (tasksMarkedUndone.length === 0) {
+			return 1;
+		}
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
+
+		return {
+			markedTasks: tasksMarkedUndone.join('", "'),
+			failedTasks: tasksFailedToMarkUndone.join('", "'),
+		};
+	} else {
+		let index = tasks[username].todos.findIndex(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		);
+
+		if (index === -1) {
+			if (isInt(task)) {
+				index = parseInt(task) - 1; // ACTUAL INDEX
+			} else if (completedTasks.length === 1) {
+				index = tasks[username].todos.findIndex((t) => t.done);
+			} else {
+				return 1;
+			}
+
+			if (index < 0 || index > tasks[username].todos.length - 1) {
+				return 1;
+			}
+
+			tasks[username].todos[index].done = false;
+			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+			renderTaskListToDOM();
+			return {
+				markedTasks: tasks[username].todos[index].text,
+				failedTasks: "",
+			};
+		}
 	}
 }
 
