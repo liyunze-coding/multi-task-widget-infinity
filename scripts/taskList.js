@@ -857,7 +857,12 @@ async function checkToAnimate() {
 		document.querySelector(".secondary").style.display = "none";
 
 		// cancel animations
-		cancelAnimation();
+		if (primaryAnimation) {
+			primaryAnimation.cancel();
+		}
+		if (secondaryAnimation) {
+			secondaryAnimation.cancel();
+		}
 		scrolling = false;
 	}
 }
@@ -866,10 +871,6 @@ function addAnimationListeners() {
 	if (primaryAnimation) {
 		primaryAnimation.addEventListener("finish", animationFinished);
 		primaryAnimation.addEventListener("cancel", animationFinished);
-	}
-	if (secondaryAnimation) {
-		secondaryAnimation.addEventListener("finish", animationFinished);
-		secondaryAnimation.addEventListener("cancel", animationFinished);
 	}
 }
 
@@ -887,6 +888,7 @@ function cancelAnimation() {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
+	console.log("animation cancelled");
 }
 
 (function () {

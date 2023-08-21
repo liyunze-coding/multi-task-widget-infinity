@@ -3,12 +3,12 @@ const configs = (function () {
 
 	// settings
 	const enableLimit = true; // true or false
-	const limit = 10; // integer
+	const limit = 5; // integer
 
 	// animation
-	const scrollSpeed = 30; // milliseconds (DO NOT PUT BELOW 5, COMPUTER MIGHT CRASH) the lower the value, the faster the scroll
+	const scrollSpeed = 30; // milliseconds
 	const pauseBetweenScrolls = 2000; // milliseconds
-	const gapBetweenScrolls = "100px"; // px
+	const gapBetweenScrolls = "50px"; // px
 
 	// STYLES
 	// task list
