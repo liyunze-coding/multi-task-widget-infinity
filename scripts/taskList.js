@@ -457,7 +457,9 @@ function markTaskDone(username, task) {
 		task = tasks[username].todos[index].text;
 		tasks[username].todos[index].done = true;
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		renderTaskListToDOM();
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
 		return {
 			markedTasks: task,
 			failedTasks: "",
@@ -548,7 +550,9 @@ function markTaskUndone(username, task) {
 
 			tasks[username].todos[index].done = false;
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
-			renderTaskListToDOM();
+			if (!scrolling) {
+				renderTaskListToDOM();
+			}
 			return {
 				markedTasks: tasks[username].todos[index].text,
 				failedTasks: "",
