@@ -87,6 +87,22 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			respond(deletedResponse, params);
 		}
 	} else if (commands.finishTaskCommands.includes(command)) {
+		if (message === "all") {
+			let finishAllStatus = markAllTasksAsDone(user);
+
+			if (finishAllStatus === 0) {
+				// user has no tasks
+				respond(responses.noTask, params);
+			} else {
+				// all tasks finished
+				let finishedResponse = responses.allTasksFinished;
+
+				respond(finishedResponse, params);
+			}
+
+			return;
+		}
+
 		let finishStatus = markTaskDone(user, message);
 
 		if (finishStatus === 0) {

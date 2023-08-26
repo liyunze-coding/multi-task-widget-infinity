@@ -213,6 +213,7 @@ const configs = (function () {
 
 	const adminDeleteTasks = "All of {mentioned}'s tasks have been deleted";
 	const taskFinished = 'Good job on finishing the task "{task}", {user}!';
+	const allTasksFinished = "Good job on finishing all your tasks, {user}!";
 	const taskUnfinished =
 		'Task(s) "{task}" has been unmarked as done, {user}!';
 	const taskEdited =
@@ -326,6 +327,7 @@ const configs = (function () {
 		specifyTaskIndex,
 		duplicateTask,
 		taskFinished,
+		allTasksFinished,
 		taskUnfinished,
 		taskEdited,
 		noTaskEdit,

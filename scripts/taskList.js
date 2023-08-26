@@ -467,6 +467,26 @@ function markTaskDone(username, task) {
 	}
 }
 
+function markAllTasksAsDone(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	// user does not have any tasks
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return 0;
+	}
+
+	for (const task of tasks[username].todos) {
+		task.done = true;
+	}
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
+	return 1;
+}
+
 function markTaskUndone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 
