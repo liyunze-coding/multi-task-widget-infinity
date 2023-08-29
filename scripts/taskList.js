@@ -838,7 +838,7 @@ async function checkToAnimate() {
 	let taskWrapperHeight = taskWrapper.clientHeight;
 
 	// scroll task wrapper up and down once
-	if (taskContainerHeight > taskWrapperHeight) {
+	if (taskContainerHeight > taskWrapperHeight && !scrolling) {
 		if (!scrolling) {
 			document.querySelector(".secondary").style.display = "flex";
 
