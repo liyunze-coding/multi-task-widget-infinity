@@ -6,9 +6,8 @@ const configs = (function () {
 	const limit = 5; // integer
 
 	// animation
-	const scrollSpeed = 30; // milliseconds
-	const pauseBetweenScrolls = 2000; // milliseconds
-	const gapBetweenScrolls = "50px"; // px
+	const scrollSpeed = 40; // milliseconds
+	const gapBetweenScrolls = 100; // px
 
 	// STYLES
 	// task list
@@ -149,6 +148,9 @@ const configs = (function () {
 		"!mytask",
 		"!check",
 	];
+
+	// List tasks commands - please add commands in the exact format
+	const listCommands = ["!taskl", "!tasklist", "!listtasks", "!list"];
 
 	// Clear my done commands - please add commands in the exact format
 	const clearMyDoneCommands = ["!clearmydone"];
@@ -298,7 +300,6 @@ const configs = (function () {
 
 	const animation = {
 		scrollSpeed,
-		pauseBetweenScrolls,
 		gapBetweenScrolls,
 		titles,
 	};
@@ -311,6 +312,7 @@ const configs = (function () {
 		unfinishTaskCommands,
 		helpCommands,
 		checkCommands,
+		listCommands,
 		clearMyDoneCommands,
 		adminDeleteCommands,
 		adminClearNotStreamerCommands,

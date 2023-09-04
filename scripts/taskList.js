@@ -678,6 +678,36 @@ function checkTasks(username) {
 	return reply;
 }
 
+// 0: user has no tasks
+function listTasks(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username]) {
+		return 0;
+	}
+	// filter completed tasks
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length === 0) {
+		return 0;
+	}
+
+	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
+	let reply = `@${username} `;
+	let taskIndex;
+	for (let i = 0; i < incompleteTasks.length; i++) {
+		// get index of task by task name
+		taskIndex =
+			tasks[username].todos.findIndex(
+				(t) =>
+					t.text.toLowerCase() ===
+					incompleteTasks[i].text.toLowerCase()
+			) + 1;
+		reply += `${incompleteTasks[i].text}, `;
+	}
+	reply = reply.slice(0, -2);
+	return reply;
+}
+
 function incompleteTasksCount(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
@@ -686,11 +716,18 @@ function incompleteTasksCount(username) {
 	return tasks[username].todos.filter((t) => !t.done).length;
 }
 
+// 0: user has no tasks
 function clearUserTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username]) {
-		return;
+	// find username where lowercase matches username
+	username = Object.keys(tasks).find(
+		(user) => user.toLowerCase() === username.toLowerCase()
+	);
+
+	if (!username) {
+		return 0;
 	}
+
 	tasks[username].todos = [];
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
@@ -842,7 +879,8 @@ async function checkToAnimate() {
 		if (!scrolling) {
 			document.querySelector(".secondary").style.display = "flex";
 
-			let finalHeight = taskContainerHeight + 100;
+			let finalHeight =
+				taskContainerHeight + configs.animation.gapBetweenScrolls;
 
 			let primaryKeyFrames = [
 				{ transform: `translateY(0)` },

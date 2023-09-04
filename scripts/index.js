@@ -173,6 +173,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 
 		clearUserTasks(mentioned);
+
 		params.mentioned = mentioned;
 		respond(responses.adminDeleteTasks, params);
 		return mentioned;
@@ -207,6 +208,13 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		respond(responses.clearTasksExceptBroadcaster, params);
 	} else if (commands.helpCommands.includes(command)) {
 		respond(responses.help, params);
+	} else if (commands.listCommands.includes(command)) {
+		let response = listTasks(user);
+		if (response === 0) {
+			respond(responses.noTask, params);
+			return;
+		}
+		ComfyJS.Say(response);
 	} else if (commands.additionalCommands[command]) {
 		respond(commands.additionalCommands[command], params);
 	} else {
