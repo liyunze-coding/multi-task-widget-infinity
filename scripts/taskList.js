@@ -107,16 +107,13 @@ function importStyles() {
 		);
 	});
 
+	let currentTitle = 0;
 	// interval the task title
 	setInterval(async () => {
 		let taskTitle = document.querySelector(".title");
-		let taskTitleText = taskTitle.innerText;
 
 		// cycle through a list of titles
 		let titles = configs.animation.titles;
-
-		// get current title
-		let currentTitle = titles.indexOf(taskTitleText);
 
 		// if current title is the last title, set it to the first title
 		if (currentTitle === titles.length - 1) {
