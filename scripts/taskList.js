@@ -636,9 +636,16 @@ function editTask(username, message) {
 // 0: user has no tasks
 function checkTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
+
+	// Go through keys of tasks, find match of lowercased username
+	username = Object.keys(tasks).find(
+		(user) => user.toLowerCase() === username.toLowerCase()
+	);
+
 	if (!tasks[username]) {
 		return 0;
 	}
+
 	// filter completed tasks
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
