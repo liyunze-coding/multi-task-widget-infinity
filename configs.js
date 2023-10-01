@@ -147,6 +147,7 @@ const configs = (function () {
 		"!checktask",
 		"!mytask",
 		"!check",
+		"!mytasks",
 	];
 
 	// List tasks commands - please add commands in the exact format
@@ -195,7 +196,6 @@ const configs = (function () {
 		"!adminallclear",
 		"!aclearall",
 		"!aclear",
-		"!clear",
 	];
 
 	// Responses
@@ -236,7 +236,7 @@ const configs = (function () {
 
 	const additionalCommands = {
 		"!botcred":
-			"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/ryanpython",
+			"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/RythonDev",
 	};
 
 	const titles = [
