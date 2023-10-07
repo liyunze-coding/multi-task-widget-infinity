@@ -1,6 +1,6 @@
 :root {
-  --task-list-width: 400px;
-  --task-list-height: 300px;
+  --task-list-width: 100%;
+  --task-list-height: 100vh;
   --task-list-background-color: rgba(0, 0, 0, 0.8);
   --task-list-border-width: 2px;
   --task-list-border-color: white;
@@ -48,8 +48,8 @@ body {
 }
 
 #main-container {
-  width: var(--task-list-width);
-  height: var(--task-list-height);
+  width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   padding: var(--task-list-vertical-padding) var(--task-list-horizontal-padding);

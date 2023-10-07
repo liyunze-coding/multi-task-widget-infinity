@@ -7,13 +7,10 @@ const configs = (function () {
 
 	// animation
 	const scrollSpeed = 40; // milliseconds
-	const gapBetweenScrolls = 100; // px
+	const gapBetweenScrolls = 0; // px
 
 	// STYLES
 	// task list
-	const taskListWidth = "400px"; // px
-	const taskListHeight = "300px"; // px
-
 	const taskListBackgroundColor = "#000000"; // hex only
 	const taskListBackgroundOpacity = 0; // 0.0 - 1.0
 
@@ -56,7 +53,7 @@ const configs = (function () {
 	const usernameFontWeight = "bold"; // normal or bold or number
 	const usernameColor = "#ffc0cb"; // hex or name or "" for twitch user color
 
-	const taskWidth = "98%";
+	const taskWidth = "100%";
 
 	const taskBackgroundColor = "#000000"; // hex only
 	const taskBackgroundOpacity = 0.7; // 0.0 - 1.0
@@ -256,8 +253,6 @@ const configs = (function () {
 	};
 
 	const styles = {
-		taskListWidth,
-		taskListHeight,
 		taskListBackgroundColor,
 		taskListBackgroundOpacity,
 		taskListBorderWidth,
