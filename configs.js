@@ -2,8 +2,11 @@ const configs = (function () {
 	"use strict";
 
 	// settings
-	const enableLimit = true; // true or false
-	const limit = 5; // integer
+	const enableLimit = false; // true or false
+	const limit = 10; // integer
+
+	const modifyLocalStorage = true; // true or false
+	const showOnlyStreamerTasks = false; // true or false
 
 	// animation
 	const scrollSpeed = 40; // milliseconds
@@ -12,11 +15,11 @@ const configs = (function () {
 	// STYLES
 	// task list
 	const taskListBackgroundColor = "#000000"; // hex only
-	const taskListBackgroundOpacity = 0; // 0.0 - 1.0
+	const taskListBackgroundOpacity = 1; // 0.0 - 1.0
 
 	const taskListBorderWidth = "0px"; // px
 	const taskListBorderColor = "#ffffff"; // hex or name
-	const taskListBorderRadius = "5px"; // px
+	const taskListBorderRadius = "0px"; // px
 
 	const taskListHorizontalPadding = "0px"; // px
 	const taskListVerticalPadding = "0px"; // px
@@ -25,12 +28,12 @@ const configs = (function () {
 	const headerHorizontalPadding = "10px"; // px
 	const headerVerticalPadding = "10px"; // px
 
-	const headerBackgroundColor = "#000000"; // hex only
-	const headerBackgroundOpacity = 0.8; // 0.0 - 1.0
+	const headerBackgroundColor = "#000"; // hex only
+	const headerBackgroundOpacity = 1; // 0.0 - 1.0
 
 	const headerBorderWidth = "2px"; // px
 	const headerBorderColor = "#ffffff"; // hex or name
-	const headerBorderRadius = "5px"; // px
+	const headerBorderRadius = "3px"; // px
 
 	const headerFontFamily = "Fredoka"; // font name
 	const headerGoogleFont = true; // true: use google font, false: use system font
@@ -38,10 +41,10 @@ const configs = (function () {
 	const headerFontSize = "25px"; // px
 	const headerFontWeight = "bold"; // normal or bold or number
 
-	const headerFontColor = "#ffffff"; // hex or name
+	const headerFontColor = "#fff"; // hex or name
 
 	// body
-	const bodyBackgroundColor = "#000000"; // hex only
+	const bodyBackgroundColor = "#fff"; // hex only
 	const bodyBackgroundOpacity = 0; // 0.0 - 1.0
 
 	const bodyBorderWidth = "0px"; // px
@@ -51,24 +54,24 @@ const configs = (function () {
 	// task
 	const lineHeight = 1.5; // number
 	const usernameFontWeight = "bold"; // normal or bold or number
-	const usernameColor = "#ffc0cb"; // hex or name or "" for twitch user color
+	const usernameColor = "pink"; // hex or name or "" for twitch user color
 
 	const taskWidth = "100%";
 
-	const taskBackgroundColor = "#000000"; // hex only
-	const taskBackgroundOpacity = 0.7; // 0.0 - 1.0
+	const taskBackgroundColor = "#fff"; // hex only
+	const taskBackgroundOpacity = 0; // 0.0 - 1.0
 
 	const taskFontFamily = "Poppins"; // font name
 	const taskGoogleFont = true; // true: use google font, false: use system font
 
 	const taskFontSize = "20px"; // px
-	const taskFontColor = "#ffffff"; // hex or name
+	const taskFontColor = "#fff"; // hex or name
 
-	const taskBorderColor = "#000000"; // hex or name
+	const taskBorderColor = "#fff"; // hex or name
 	const taskBorderWidth = "0px"; // px
-	const taskBorderRadius = "5px"; // px
+	const taskBorderRadius = "10px"; // px
 
-	const taskMarginBottom = "5px"; // px
+	const taskMarginBottom = "10px"; // px
 	const taskHorizontalPadding = "20px"; // px
 	const taskVerticalPadding = "10px"; // px
 
@@ -81,6 +84,7 @@ const configs = (function () {
 		"!task",
 		"!add",
 		"!todo",
+		"!a",
 	];
 
 	// Edit task commands - please add commands in the exact format
@@ -90,11 +94,11 @@ const configs = (function () {
 		"!etask",
 		"!edittask",
 		"!edit",
+		"!e",
 	];
 
 	// Delete task commands - please add commands in the exact format
 	const deleteTaskCommands = [
-		"!taskd",
 		"!taskdel",
 		"!taskdelete",
 		"!deltask",
@@ -105,6 +109,7 @@ const configs = (function () {
 		"!removetask",
 		"!remove",
 		"!delete",
+		"!r",
 	];
 
 	// Finish task commands - please add commands in the exact format
@@ -120,6 +125,7 @@ const configs = (function () {
 		"!finish",
 		"!done",
 		"!finished",
+		"!f",
 	];
 
 	// Unfinish task commands - please add commands in the exact format
@@ -134,6 +140,7 @@ const configs = (function () {
 		"!undone",
 		"!unfinish",
 		"!unfinished",
+		"!u",
 	];
 
 	// Check task commands - please add commands in the exact format
@@ -250,6 +257,8 @@ const configs = (function () {
 		limit,
 		headerGoogleFont,
 		taskGoogleFont,
+		modifyLocalStorage,
+		showOnlyStreamerTasks,
 	};
 
 	const styles = {
@@ -276,6 +285,7 @@ const configs = (function () {
 		bodyBorderWidth,
 		bodyBorderColor,
 		bodyBorderRadius,
+
 		taskWidth,
 		lineHeight,
 		usernameFontWeight,

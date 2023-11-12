@@ -262,7 +262,9 @@ function removeTask(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex((t) => !t.done);
+					index = tasks[username].todos.findIndex(
+						(t) => !t.done
+					);
 					tasksRemoved.push(tasks[username].todos[index].text);
 					removedTaskIndex.push(index);
 				} else {
@@ -401,8 +403,12 @@ function markTaskDone(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex((t) => !t.done);
-					tasksMarkedComplete.push(tasks[username].todos[index].text);
+					index = tasks[username].todos.findIndex(
+						(t) => !t.done
+					);
+					tasksMarkedComplete.push(
+						tasks[username].todos[index].text
+					);
 				} else {
 					tasksFailedToComplete.push(t);
 					continue;
@@ -412,7 +418,9 @@ function markTaskDone(username, task) {
 					tasksFailedToComplete.push(t);
 					continue;
 				} else {
-					tasksMarkedComplete.push(tasks[username].todos[index].text);
+					tasksMarkedComplete.push(
+						tasks[username].todos[index].text
+					);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
@@ -526,7 +534,9 @@ function markTaskUndone(username, task) {
 					tasksFailedToMarkUndone.push(t);
 					continue;
 				} else {
-					tasksMarkedUndone.push(tasks[username].todos[index].text);
+					tasksMarkedUndone.push(
+						tasks[username].todos[index].text
+					);
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
@@ -775,7 +785,7 @@ function clearAllExceptStreamer(streamer) {
 }
 
 function renderTaskListToDOM() {
-	const tasks = JSON.parse(localStorage.tasks);
+	let tasks = JSON.parse(localStorage.tasks);
 
 	const taskContainers = document.querySelectorAll(".task-container");
 	taskContainers.forEach((taskList) => {
@@ -783,6 +793,17 @@ function renderTaskListToDOM() {
 
 		let totalTaskCount = 0;
 		let completedTasksCount = 0;
+
+		if (settings.showOnlyStreamerTasks) {
+			// filter out tasks that are not from the streamer
+			tasks = Object.keys(tasks).reduce((obj, key) => {
+				if (key.toLowerCase() === auth.channel.toLowerCase()) {
+					obj[key] = tasks[key];
+				}
+				return obj;
+			}, {});
+		}
+
 		for (const user in tasks) {
 			const userTasks = tasks[user];
 			if (userTasks.todos.length === 0) {
@@ -954,7 +975,7 @@ function cancelAnimation() {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
-	console.log("animation cancelled");
+	// console.log("animation cancelled");
 }
 
 (function () {
