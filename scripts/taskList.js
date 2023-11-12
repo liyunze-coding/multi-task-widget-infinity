@@ -978,6 +978,16 @@ function cancelAnimation() {
 	// console.log("animation cancelled");
 }
 
+if (!settings.modifyLocalStorage) {
+	window.addEventListener(
+		"storage",
+		function () {
+			renderTaskListToDOM();
+		},
+		false
+	);
+}
+
 (function () {
 	setupDB();
 	importStyles();

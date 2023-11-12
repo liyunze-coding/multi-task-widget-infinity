@@ -5,7 +5,7 @@ const configs = (function () {
 	const enableLimit = false; // true or false
 	const limit = 10; // integer
 
-	const modifyLocalStorage = true; // true or false
+	const modifyLocalStorage = false; // true or false
 	const showOnlyStreamerTasks = false; // true or false
 
 	// animation
