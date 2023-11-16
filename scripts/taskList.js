@@ -262,7 +262,9 @@ function removeTask(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex((t) => !t.done);
+					index = tasks[username].todos.findIndex(
+						(t) => !t.done
+					);
 					tasksRemoved.push(tasks[username].todos[index].text);
 					removedTaskIndex.push(index);
 				} else {
@@ -401,8 +403,12 @@ function markTaskDone(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex((t) => !t.done);
-					tasksMarkedComplete.push(tasks[username].todos[index].text);
+					index = tasks[username].todos.findIndex(
+						(t) => !t.done
+					);
+					tasksMarkedComplete.push(
+						tasks[username].todos[index].text
+					);
 				} else {
 					tasksFailedToComplete.push(t);
 					continue;
@@ -412,7 +418,9 @@ function markTaskDone(username, task) {
 					tasksFailedToComplete.push(t);
 					continue;
 				} else {
-					tasksMarkedComplete.push(tasks[username].todos[index].text);
+					tasksMarkedComplete.push(
+						tasks[username].todos[index].text
+					);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
@@ -434,7 +442,7 @@ function markTaskDone(username, task) {
 		};
 	} else {
 		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
+			(t) => t.text.toLowerCase() === task.toLowerCase() && !t.done
 		);
 
 		if (index === -1) {
@@ -526,7 +534,9 @@ function markTaskUndone(username, task) {
 					tasksFailedToMarkUndone.push(t);
 					continue;
 				} else {
-					tasksMarkedUndone.push(tasks[username].todos[index].text);
+					tasksMarkedUndone.push(
+						tasks[username].todos[index].text
+					);
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
@@ -549,7 +559,7 @@ function markTaskUndone(username, task) {
 		};
 	} else {
 		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
+			(t) => t.text.toLowerCase() === task.toLowerCase() && t.done
 		);
 
 		if (index === -1) {
@@ -565,6 +575,16 @@ function markTaskUndone(username, task) {
 				return 1;
 			}
 
+			tasks[username].todos[index].done = false;
+			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+			if (!scrolling) {
+				renderTaskListToDOM();
+			}
+			return {
+				markedTasks: tasks[username].todos[index].text,
+				failedTasks: "",
+			};
+		} else {
 			tasks[username].todos[index].done = false;
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
 			if (!scrolling) {
@@ -954,7 +974,7 @@ function cancelAnimation() {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
-	console.log("animation cancelled");
+	// console.log("animation cancelled");
 }
 
 (function () {
