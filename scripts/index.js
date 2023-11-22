@@ -1,5 +1,4 @@
 const commands = configs.commands;
-const responses = configs.responses;
 
 let params = {};
 
@@ -11,11 +10,19 @@ function respond(template, params) {
 			.replace("{mentioned}", `@${params.mentioned}`)
 			.replace("{task}", params.task)
 			.replace("{originalTask}", params.originalTask)
+			.replace("{doneCount}", params.doneCount)
+			.replace("{count}", params.count)
+			.replace("{pointName}", params.pointName)
+			.replace("{pointCount}", params.pointCount)
 	);
 }
 
 function isMod(flags) {
 	return flags.broadcaster || flags.mod;
+}
+
+function isStreamer(flags) {
+	return flags.broadcaster;
 }
 
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
@@ -27,138 +34,163 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		mentioned: "",
 		task: "",
 		originalTask: "",
+		doneCount: "",
+		count: "",
+		pointName: configs.settings.pointsName,
+		pointCount: "",
 	};
 
 	if (commands.addTaskCommands.includes(command)) {
-		let addStatus = addTask(user, extra.userColor, message);
+		let addRequest = addTask(user, extra.userColor, message);
 
-		if (addStatus === 0) {
-			// limit has reached
-			respond(responses.noTaskAdded, params);
-		} else if (addStatus === 1) {
-			// duplicate task
-			respond(responses.duplicateTask, params);
-		} else if (addStatus === 2) {
-			// task has no content
-			respond(responses.noTaskContent, params);
-		} else {
-			let addResponse = responses.taskAdded;
-			params.task = addStatus.task;
-
-			if (addStatus.tasksFailedToAdd !== "") {
-				addResponse += ` | Failed to add task(s): "${addStatus.tasksFailedToAdd}"`;
-			}
-
-			// task added
-			respond(addResponse, params);
-		}
-	} else if (commands.editTaskCommands.includes(command)) {
-		let editStatus = editTask(user, message);
-
-		if (editStatus === 0) {
-			// no task
-			respond(responses.noTask, params);
-		} else if (editStatus === 1) {
-			// invalid input
-			respond(responses.noTaskEdit, params);
-		} else {
-			// task edited
-			params.task = editStatus[1];
-			params.originalTask = editStatus[0];
-			respond(responses.taskEdited, params);
-		}
-	} else if (commands.deleteTaskCommands.includes(command)) {
-		let removeStatus = removeTask(user, message);
-		if (removeStatus === 0) {
-			// no task
-			respond(responses.noTask, params);
-		} else if (removeStatus === 1) {
-			// invalid input
-			respond(responses.specifyTaskIndex, params);
-		} else {
-			// task deleted
-			let deletedResponse = responses.taskDeleted;
-			params.task = removeStatus.removedTasks;
-
-			if (removeStatus.failedTasks !== "") {
-				deletedResponse += ` | Failed to delete task(s): "${removeStatus.failedTasks}"`;
-			}
-
-			respond(deletedResponse, params);
-		}
-	} else if (commands.finishTaskCommands.includes(command)) {
-		if (message === "all") {
-			let finishAllStatus = markAllTasksAsDone(user);
-
-			if (finishAllStatus === 0) {
-				// user has no tasks
-				respond(responses.noTask, params);
-			} else {
-				// all tasks finished
-				let finishedResponse = responses.allTasksFinished;
-
-				respond(finishedResponse, params);
-			}
-
+		if (addRequest.status !== 200) {
+			respond(addRequest.body.error, params);
 			return;
 		}
 
-		let finishStatus = markTaskDone(user, message);
+		let addedResponse = responses.taskAdded;
+		params.task = addRequest.body.task;
 
-		if (finishStatus === 0) {
-			// user has no tasks
-			respond(responses.noTask, params);
-		} else if (finishStatus === 1) {
-			// invalid input
-			respond(responses.specifyTaskIndex, params);
-		} else {
-			// task finished
-			let finishedResponse = responses.taskFinished;
+		if (addRequest.body.tasksFailedToAdd !== "") {
+			addedResponse += ` | Failed to add task(s): "${addRequest.body.tasksFailedToAdd}"`;
+		}
 
-			params.task = finishStatus.markedTasks;
+		respond(addedResponse, params);
+	} else if (commands.editTaskCommands.includes(command)) {
+		let editRequest = editTask(user, message);
 
-			if (finishStatus.failedTasks !== "") {
-				finishedResponse += ` | Failed to finish task(s): "${finishStatus.failedTasks}"`;
+		if (editRequest.status !== 200) {
+			respond(editRequest.body.error, params);
+			return;
+		}
+
+		let originalTask = editRequest.body.originalTask;
+		let newTask = editRequest.body.newTask;
+
+		params.task = newTask;
+		params.originalTask = originalTask;
+
+		respond(responses.taskEdited, params);
+	} else if (commands.deleteTaskCommands.includes(command)) {
+		let removeRequest = removeTask(user, message);
+
+		if (removeRequest.status !== 200) {
+			respond(removeRequest.body.error, params);
+			return;
+		}
+		let deletedResponse = responses.taskDeleted;
+
+		let removedTasks = removeRequest.body.removedTasks;
+		let failedTasks = removeRequest.body.failedTasks;
+
+		params.task = removedTasks;
+
+		if (failedTasks !== "") {
+			deletedResponse += ` | Failed to delete task(s): "${failedTasks}"`;
+		}
+
+		respond(deletedResponse, params);
+	} else if (commands.finishTaskCommands.includes(command)) {
+		if (message === "all") {
+			let finishAllRequest = markAllTasksAsDone(user);
+
+			if (finishAllRequest.status !== 200) {
+				respond(finishAllRequest.body.error, params);
+				return;
 			}
 
-			respond(finishedResponse, params);
+			let finishedAllResponse = responses.allTasksFinished;
+			params.doneCount = completedTasksCount(user);
+
+			respond(finishedAllResponse, params);
+			return;
 		}
+
+		let finishRequest = markTaskDone(user, message);
+
+		if (finishRequest.status !== 200) {
+			respond(finishRequest.body.error, params);
+			return;
+		}
+
+		let finishedResponse = responses.taskFinished;
+
+		params.task = finishRequest.body.markedTasks;
+		params.doneCount = completedTasksCount(user);
+		params.pointCount =
+			finishRequest.body.markedTasksCount *
+			configs.settings.pointsPerTask;
+
+		if (finishRequest.body.failedTasks !== "") {
+			finishedResponse += ` | Failed to finish task(s): "${finishRequest.body.failedTasks}"`;
+		}
+
+		respond(finishedResponse, params);
 	} else if (commands.unfinishTaskCommands.includes(command)) {
-		let unfinishStatus = markTaskUndone(user, message);
+		let unfinishRequest = markTaskUndone(user, message);
 
-		if (unfinishStatus === 0) {
-			// user has no tasks
-			respond(responses.noTask, params);
-		} else if (unfinishStatus === 1) {
-			// invalid input
-			respond(responses.specifyTaskIndex, params);
-		} else {
-			// task unfinished
-			let unfinishedResponse = responses.taskUnfinished;
-
-			params.task = unfinishStatus.markedTasks;
-
-			if (unfinishStatus.failedTasks !== "") {
-				unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishStatus.failedTasks}"`;
-			}
-
-			respond(unfinishedResponse, params);
+		if (unfinishRequest.status !== 200) {
+			respond(unfinishRequest.body.error, params);
+			return;
 		}
+
+		// task unfinished
+		let unfinishedResponse = responses.taskUnfinished;
+
+		params.task = unfinishRequest.body.markedTasks;
+
+		if (unfinishRequest.body.failedTasks !== "") {
+			unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishRequest.body.failedTasks}"`;
+		}
+
+		respond(unfinishedResponse, params);
+	} else if (commands.focusTaskCommands.includes(command)) {
+		let focusRequest = focusTask(user, message);
+
+		if (focusRequest.status !== 200) {
+			respond(focusRequest.body.error, params);
+			return;
+		}
+
+		// task focused
+		let focusedResponse = responses.taskFocused;
+
+		params.task = focusRequest.body.focusedTask;
+
+		respond(focusedResponse, params);
+	} else if (commands.unfocusTaskCommands.includes(command)) {
+		let unfocusRequest = unfocusTask(user);
+
+		if (unfocusRequest.status !== 200) {
+			respond(unfocusRequest.body.error, params);
+			return;
+		}
+
+		// task unfocused
+		let unfocusedResponse = responses.taskUnfocused;
+
+		respond(unfocusedResponse, params);
 	} else if (commands.checkCommands.includes(command)) {
 		if (message === "") {
-			let response = checkTasks(user);
-			if (response === 0) {
-				return respond(responses.noTask, params);
+			let checkRequest = checkTasks(user);
+			if (checkRequest.status !== 200) {
+				// no tasks
+				respond(checkRequest.body.error, params);
+				return;
 			}
-			return ComfyJS.Say(response);
+
+			return ComfyJS.Say(checkRequest.body.reply);
 		} else {
 			let mentioned = message.replace("@", "");
-			let response = checkTasks(mentioned);
-			if (response === 0) {
+			let checkRequest = checkTasks(mentioned);
+
+			if (checkRequest.status !== 200) {
 				// no tasks
-				return respond(responses.noTaskA, params);
+				respond(checkRequest.body.error, params);
+
+				return;
 			}
-			return ComfyJS.Say(response);
+			return ComfyJS.Say(checkRequest.body.reply);
 		}
 	} else if (commands.adminDeleteCommands.includes(command)) {
 		if (!isMod(flags)) {
@@ -172,31 +204,40 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			return;
 		}
 
-		clearUserTasks(mentioned);
+		let clearUserTaskResponse = clearUserTasks(mentioned);
 
 		params.mentioned = mentioned;
-		respond(responses.adminDeleteTasks, params);
-		return mentioned;
-	} else if (commands.adminClearDoneCommands.includes(command)) {
-		if (!isMod(flags)) {
-			respond(responses.notMod, params);
-			return;
-		} else {
-			clearAllDoneTasks();
-			respond(responses.clearedDone, params);
-		}
-	} else if (commands.adminClearAllCommands.includes(command)) {
-		if (!isMod(flags)) {
-			respond(responses.notMod, params);
-			return;
-		} else {
-			clearAllTasks();
-			respond(responses.clearedAll, params);
-		}
-	} else if (commands.clearMyDoneCommands.includes(command)) {
-		let response = clearOwnDoneTasks(user);
 
-		if (response === 0) {
+		if (clearUserTaskResponse.status === 0) {
+			// no tasks
+			respond(responses.noTaskA, params);
+			return;
+		}
+
+		respond(responses.adminDeleteTasks, params);
+		return;
+	} else if (commands.adminClearDoneCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		clearAllDoneTasks();
+		respond(responses.clearedDone, params);
+		return;
+	} else if (commands.adminClearAllCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		clearAll();
+		respond(responses.clearedAll, params);
+		return;
+	} else if (commands.clearMyDoneCommands.includes(command)) {
+		let clearOwnDoneResponse = clearOwnDoneTasks(user);
+
+		if (clearOwnDoneResponse.status === 0) {
 			// no tasks
 			respond(responses.noTask, params);
 			return;
@@ -204,17 +245,109 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
 		respond(responses.clearedMyDone, params);
 	} else if (commands.adminClearNotStreamerCommands.includes(command)) {
-		clearAllExceptStreamer(auth.channel);
-		respond(responses.clearTasksExceptBroadcaster, params);
-	} else if (commands.helpCommands.includes(command)) {
-		respond(responses.help, params);
-	} else if (commands.listCommands.includes(command)) {
-		let response = listTasks(user);
-		if (response === 0) {
-			respond(responses.noTask, params);
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
 			return;
 		}
-		ComfyJS.Say(response);
+
+		clearAllExceptStreamer(auth.channel);
+		respond(responses.clearTasksExceptBroadcaster, params);
+	} else if (commands.adminClearTasksCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		clearAllTasks();
+		respond(responses.clearedTasks, params);
+	} else if (commands.listCommands.includes(command)) {
+		let listTaskResponse = listTasks(user);
+
+		if (listTaskResponse.status !== 200) {
+			// no tasks
+			respond(listTaskResponse.body.error, params);
+			return;
+		}
+
+		respond(listTaskResponse.body.reply, params);
+	} else if (commands.checkCountCommands.includes(command)) {
+		if (message === "") {
+			let count = completedTasksCount(user);
+
+			params.doneCount = count;
+
+			return respond(responses.checkYourCount, params);
+		} else {
+			let mentioned = message.replace("@", "");
+			let count = completedTasksCount(mentioned);
+
+			params.doneCount = count;
+			params.mentioned = mentioned;
+
+			return respond(responses.checkUserCount, params);
+		}
+	} else if (commands.checkAllCountCommands.includes(command)) {
+		let count = getBoardTotalTaskCount();
+
+		if (count === 0) {
+			respond(responses.noCountAll, params);
+			return;
+		}
+
+		params.doneCount = count;
+
+		respond(responses.checkAllCount, params);
+	} else if (commands.checkMyPointsCommands.includes(command)) {
+		if (message === "") {
+			let points = calculatePoints(user);
+
+			params.pointCount = points;
+
+			return respond(responses.checkMyPoints, params);
+		} else {
+			let mentioned = message.replace("@", "");
+			let points = calculatePoints(mentioned);
+
+			params.pointCount = points;
+			params.mentioned = mentioned;
+
+			return respond(responses.checkUserPoints, params);
+		}
+	} else if (commands.adminSetBoardCount.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		// check if message is a number using regex
+		if (!/^\d+$/.test(message)) {
+			respond(responses.invalidNumber, params);
+			return;
+		}
+
+		params.count = message;
+
+		setTotalCompleteCount(message);
+
+		respond(responses.setBoardCount, params);
+	} else if (commands.adminResetBoardCount.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		resetBoardCount();
+		respond(responses.clearedBoardCount, params);
+	} else if (commands.adminResetUsersCount.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		resetUsersCount();
+		respond(responses.clearedUsersCount, params);
+	} else if (commands.helpCommands.includes(command)) {
+		respond(responses.help, params);
 	} else if (commands.additionalCommands[command]) {
 		respond(commands.additionalCommands[command], params);
 	} else {

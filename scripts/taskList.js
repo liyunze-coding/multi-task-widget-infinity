@@ -2,16 +2,21 @@
 DB structure:
 
 - tasks
-    - username:
+    - [username]:
 		- todos (array)
-            - [{text, done}, {text, done}]
-		- done
+            - [{text, done, focus}, {text, done, focus}]
 		- userColor
+- counts
+	- users
+		- [username]:
+			- completeCount
+	- totalCompleteCount
 */
 
 const settings = configs.settings;
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
+const responses = configs.responses;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 
@@ -145,12 +150,102 @@ function setupDB() {
 	if (!localStorage.tasks) {
 		localStorage.setItem(`tasks`, "{}");
 	}
+	if (!localStorage.counts) {
+		localStorage.setItem(`counts`, JSON.stringify({ users: {} }));
+	}
 }
 
+function incompleteTasksCount(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username]) {
+		return 0;
+	}
+	return tasks[username].todos.filter((t) => !t.done).length;
+}
+
+function completedTasksCount(username) {
+	const counts = JSON.parse(localStorage.counts);
+	if (!counts.users[username.toLowerCase()]) {
+		return 0;
+	}
+	return counts.users[username.toLowerCase()].completeCount;
+}
+
+function getUserTotalTaskCount(username) {
+	return incompleteTasksCount(username) + completedTasksCount(username);
+}
+
+function addDoneCount(username, value) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		counts.users[username.toLowerCase()] = {
+			completeCount: 0,
+		};
+	}
+
+	if (!counts.totalCompleteCount) {
+		counts.totalCompleteCount = 0;
+	}
+
+	counts.users[username.toLowerCase()].completeCount += value;
+	counts.totalCompleteCount += value;
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+}
+
+function setTotalCompleteCount(value) {
+	const counts = JSON.parse(localStorage.counts);
+
+	counts.totalCompleteCount = parseInt(value);
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+}
+
+function calculatePoints(username) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		return 0;
+	}
+
+	return (
+		counts.users[username.toLowerCase()].completeCount *
+		settings.pointsPerTask
+	);
+}
+
+function getBoardTotalTaskCount() {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.totalCompleteCount) {
+		return 0;
+	}
+
+	return counts.totalCompleteCount;
+}
+
+function resetBoardCount() {
+	const counts = JSON.parse(localStorage.counts);
+
+	counts.totalCompleteCount = 0;
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+}
+
+function resetUsersCount() {
+	const counts = JSON.parse(localStorage.counts);
+
+	counts.users = {};
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+}
+
+// status, body
 // 0: limit has reached
 // 1: duplicate task
 // 2: invalid input
-// string (single or multiple tasks): success
+// 200: success
 function addTask(username, userColor, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
@@ -165,7 +260,13 @@ function addTask(username, userColor, task) {
 		incompleteTasksCount(username) >= settings.limit &&
 		settings.enableLimit
 	) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has reached the limit of ${settings.limit} tasks`,
+				error: responses.noTaskAdded,
+			},
+		};
 	}
 
 	if (
@@ -173,12 +274,35 @@ function addTask(username, userColor, task) {
 			(t) => t.text.toLowerCase() === task.toLowerCase()
 		)
 	) {
-		return 1;
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} already has this task`,
+				error: responses.duplicateTask,
+			},
+		};
 	}
 
 	// if task is whitespace or empty
 	if (!task || !task.trim()) {
-		return 2;
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// if task is "all", return error
+	if (task.toLowerCase() === "all") {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} all is a reserved keyword`,
+				error: responses.noTaskContent,
+			},
+		};
 	}
 
 	let tasksFailedToAdd = [];
@@ -204,37 +328,221 @@ function addTask(username, userColor, task) {
 		}
 
 		for (const t of tasksToAdd) {
-			tasks[username].todos.push({ text: t, done: false });
+			if (t === "") {
+				continue;
+			}
+			if (t === "all") {
+				tasksFailedToAdd.push(t);
+				// remove from tasksToAdd
+				tasksToAdd = tasksToAdd.filter((task) => task !== t);
+				continue;
+			}
+			if (tasks[username].todos.find((task) => task.text === t)) {
+				tasksToAdd = tasksToAdd.filter((task) => task !== t);
+				tasksFailedToAdd.push(t);
+				continue;
+			}
+			tasks[username].todos.push({
+				text: t,
+				done: false,
+				focus: false,
+			});
 		}
+
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
+
 		return {
-			task: tasksToAdd.join('", "'),
-			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+			status: 200,
+			body: {
+				task: tasksToAdd.join('", "'),
+				tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+			},
 		};
 	}
 
-	tasks[username].todos.push({ text: task, done: false });
+	tasks[username].todos.push({ text: task, done: false, focus: false });
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
 
 	return {
-		task: task,
-		tasksFailedToAdd: "",
+		status: 200,
+		body: {
+			task: task,
+			tasksFailedToAdd: "",
+		},
 	};
 }
 
 // 0: user has no tasks
 // 1: invalid input
-// removed task: success
+// 200: success
+function focusTask(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+	if (incompleteTasks.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no incomplete tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	if (task.includes(",")) {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} need to specify ONLY ONE task`,
+				error: responses.onlyOneFocus,
+			},
+		};
+	}
+
+	let index = tasks[username].todos.findIndex(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+
+	if (index === -1) {
+		if (isInt(task)) {
+			index = parseInt(task) - 1; // ACTUAL INDEX
+		} else if (incompleteTasks.length === 1) {
+			index = tasks[username].todos.findIndex((t) => !t.done);
+		} else {
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: responses.specifyFocusTask,
+				},
+			};
+		}
+
+		if (index < 0 || index > tasks[username].todos.length - 1) {
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: responses.specifyFocusTask,
+				},
+			};
+		}
+	} else {
+		if (tasks[username].todos[index].done) {
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} task is already completed`,
+					error: responses.specifyFocusTask,
+				},
+			};
+		}
+	}
+
+	let focusedTask = tasks[username].todos[index].text;
+
+	// if task is already focused, return 1
+	if (tasks[username].todos[index].focus) {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} task is already focused`,
+				error: responses.alreadyFocusedTask,
+			},
+		};
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	// set task to focused
+	tasks[username].todos[index].focus = true;
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
+	return {
+		status: 200,
+		body: {
+			focusedTask: focusedTask,
+		},
+	};
+}
+
+// 0: user has no tasks
+// 1: invalid input
+// 200: success
+function unfocusTask(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	// if no tasks are focused, return 1
+	if (!tasks[username].todos.find((t) => t.focus)) {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} no tasks are focused`,
+				error: responses.noFocusedTask,
+			},
+		};
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	return {
+		status: 200,
+	};
+}
+
+// 0: user has no tasks
+// 1: invalid input
+// 200: success
 function removeTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
@@ -286,7 +594,13 @@ function removeTask(username, task) {
 		}
 
 		if (tasksRemoved.length === 0) {
-			return 1;
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: responses.specifyTaskIndex,
+				},
+			};
 		}
 
 		// sort removedTaskIndex in descending order
@@ -302,8 +616,11 @@ function removeTask(username, task) {
 			renderTaskListToDOM();
 		}
 		return {
-			removedTasks: tasksRemoved.join('", "'),
-			failedTasks: tasksFailedToRemove.join('", "'),
+			status: 200,
+			body: {
+				removedTasks: tasksRemoved.join('", "'),
+				failedTasks: tasksFailedToRemove.join('", "'),
+			},
 		};
 	} else {
 		let index = tasks[username].todos.findIndex(
@@ -316,11 +633,23 @@ function removeTask(username, task) {
 			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
 
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
 		}
 
@@ -330,8 +659,11 @@ function removeTask(username, task) {
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
 		renderTaskListToDOM();
 		return {
-			removedTasks: task,
-			failedTasks: "",
+			status: 200,
+			body: {
+				removedTasks: task,
+				failedTasks: "",
+			},
 		};
 	}
 }
@@ -346,12 +678,18 @@ function isInt(value) {
 }
 
 // 0: user has no tasks
-// 1: success
+// 200: success
 function clearOwnDoneTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	let incompleteUserTasks = tasks[username].todos.filter((t) => !t.done);
@@ -364,21 +702,40 @@ function clearOwnDoneTasks(username) {
 		renderTaskListToDOM();
 	}
 
-	return 1;
+	return {
+		status: 200,
+	};
 }
 
 // 0: user has no tasks
 // 1: invalid input
-// task: succcess
+// 2: task is already completed
+// 200: succcess
 function markTaskDone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no incomplete tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
 
 	// match regex: integers separated by space e.g. '1 2 3 4'
 	if (task.match(/^(\d+ )*\d+$/)) {
@@ -399,6 +756,12 @@ function markTaskDone(username, task) {
 				(task) => task.text.toLowerCase() === t.toLowerCase()
 			);
 
+			// check if task is already marked done
+			if (index !== -1 && tasks[username].todos[index].done) {
+				tasksFailedToComplete.push(t);
+				continue;
+			}
+
 			if (index === -1) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
@@ -409,6 +772,8 @@ function markTaskDone(username, task) {
 					tasksMarkedComplete.push(
 						tasks[username].todos[index].text
 					);
+					// increment count
+					addDoneCount(username, 1);
 				} else {
 					tasksFailedToComplete.push(t);
 					continue;
@@ -417,19 +782,33 @@ function markTaskDone(username, task) {
 				if (index < 0 || index > tasks[username].todos.length - 1) {
 					tasksFailedToComplete.push(t);
 					continue;
+				} else if (tasks[username].todos[index].done) {
+					tasksFailedToComplete.push(t);
+					continue;
 				} else {
 					tasksMarkedComplete.push(
 						tasks[username].todos[index].text
 					);
+					// increment count
+					addDoneCount(username, 1);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
+				// increment count
+				addDoneCount(username, 1);
 			}
 			tasks[username].todos[index].done = true;
+			tasks[username].todos[index].focus = false;
 		}
 
 		if (tasksMarkedComplete.length === 0) {
-			return 1;
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: responses.specifyTaskIndex,
+				},
+			};
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
@@ -437,50 +816,108 @@ function markTaskDone(username, task) {
 			renderTaskListToDOM();
 		}
 		return {
-			markedTasks: tasksMarkedComplete.join('", "'),
-			failedTasks: tasksFailedToComplete.join('", "'),
+			status: 200,
+			body: {
+				markedTasks: tasksMarkedComplete.join('", "'),
+				failedTasks: tasksFailedToComplete.join('", "'),
+				markedTasksCount: tasksMarkedComplete.length,
+			},
 		};
 	} else {
+		// if there's no comma in the task (single task)
+
 		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase() && !t.done
+			(t) => t.text.toLowerCase() === task.toLowerCase()
 		);
+
+		// is there a task with focus on?
+		let focusedTask = tasks[username].todos.find((t) => t.focus);
 
 		if (index === -1) {
 			if (isInt(task)) {
 				index = parseInt(task) - 1; // ACTUAL INDEX
 			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
+			} else if (focusedTask) {
+				index = tasks[username].todos.findIndex(
+					(t) =>
+						t.text.toLowerCase() ===
+						focusedTask.text.toLowerCase()
+				);
+			} else if (settings.automaticDoneIndex) {
+				// index is the first incomplete task
+				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
 
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
+		}
+
+		// task is already marked done
+		if (tasks[username].todos[index].done) {
+			return {
+				status: 2,
+				body: {
+					"error message": `@${username} task is already completed`,
+					error: responses.alreadyDoneTask,
+				},
+			};
 		}
 
 		task = tasks[username].todos[index].text;
 		tasks[username].todos[index].done = true;
+		addDoneCount(username, 1);
+
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
 		return {
-			markedTasks: task,
-			failedTasks: "",
+			status: 200,
+			body: {
+				markedTasks: task,
+				failedTasks: "",
+				markedTasksCount: 1,
+			},
 		};
 	}
 }
 
+// 0: user has no tasks
+// 200: success
 function markAllTasksAsDone(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	for (const task of tasks[username].todos) {
+		if (!task.done) {
+			addDoneCount(username, 1);
+		}
 		task.done = true;
 	}
 
@@ -489,15 +926,27 @@ function markAllTasksAsDone(username) {
 		renderTaskListToDOM();
 	}
 
-	return 1;
+	return {
+		status: 200,
+	};
 }
 
+// 0: user has no tasks
+// 1: invalid input
+// 2: task is already incomplete
+// 200: succcess
 function markTaskUndone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
@@ -540,12 +989,19 @@ function markTaskUndone(username, task) {
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
+				addDoneCount(username, -1);
 			}
 			tasks[username].todos[index].done = false;
 		}
 
 		if (tasksMarkedUndone.length === 0) {
-			return 1;
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: responses.specifyTaskIndex,
+				},
+			};
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
@@ -554,8 +1010,11 @@ function markTaskUndone(username, task) {
 		}
 
 		return {
-			markedTasks: tasksMarkedUndone.join('", "'),
-			failedTasks: tasksFailedToMarkUndone.join('", "'),
+			status: 200,
+			body: {
+				markedTasks: tasksMarkedUndone.join('", "'),
+				failedTasks: tasksFailedToMarkUndone.join('", "'),
+			},
 		};
 	} else {
 		let index = tasks[username].todos.findIndex(
@@ -568,31 +1027,53 @@ function markTaskUndone(username, task) {
 			} else if (completedTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => t.done);
 			} else {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
 
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} invalid input`,
+						error: responses.specifyTaskIndex,
+					},
+				};
 			}
 
 			tasks[username].todos[index].done = false;
+
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
 			if (!scrolling) {
 				renderTaskListToDOM();
 			}
 			return {
-				markedTasks: tasks[username].todos[index].text,
-				failedTasks: "",
+				status: 200,
+				body: {
+					markedTasks: tasks[username].todos[index].text,
+					failedTasks: "",
+				},
 			};
 		} else {
 			tasks[username].todos[index].done = false;
+
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
 			if (!scrolling) {
 				renderTaskListToDOM();
 			}
 			return {
-				markedTasks: tasks[username].todos[index].text,
-				failedTasks: "",
+				status: 200,
+				body: {
+					markedTasks: tasks[username].todos[index].text,
+					failedTasks: "",
+				},
 			};
 		}
 	}
@@ -600,13 +1081,19 @@ function markTaskUndone(username, task) {
 
 // 0: user has no tasks
 // 1: invalid input
-// [original task, new task]: succcess
+// 200: success
 function editTask(username, message) {
 	const tasks = JSON.parse(localStorage.tasks);
 	let noSpecifiedIndex = false;
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	// example 'message': 1 new task
@@ -623,7 +1110,13 @@ function editTask(username, message) {
 	}
 
 	if (isNaN(index)) {
-		return 1;
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} invalid input`,
+				error: responses.specifyTaskIndex,
+			},
+		};
 	}
 
 	let newTask = message.split(" ").slice(1).join(" ");
@@ -634,11 +1127,23 @@ function editTask(username, message) {
 
 	// if newTask is empty or whitespace, return 1
 	if (!newTask || !newTask.trim()) {
-		return 1;
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} invalid input`,
+				error: responses.noTaskContent,
+			},
+		};
 	}
 
 	if (index < 0 || index > tasks[username].todos.length - 1) {
-		return 1;
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} invalid input`,
+				error: responses.specifyTaskIndex,
+			},
+		};
 	}
 
 	let originalTask = tasks[username].todos[index].text;
@@ -650,7 +1155,13 @@ function editTask(username, message) {
 		renderTaskListToDOM();
 	}
 
-	return [originalTask, newTask];
+	return {
+		status: 200,
+		body: {
+			originalTask: originalTask,
+			newTask: newTask,
+		},
+	};
 }
 
 // 0: user has no tasks
@@ -663,7 +1174,13 @@ function checkTasks(username) {
 	);
 
 	if (!tasks[username]) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	// filter completed tasks
@@ -681,7 +1198,10 @@ function checkTasks(username) {
 					t.text.toLowerCase() ===
 					incompleteTasks[i].text.toLowerCase()
 			) + 1;
-		reply += `${taskIndex}. ${incompleteTasks[i].text} | `;
+
+		reply += `${taskIndex}. ${
+			incompleteTasks[i].focus ? "(FOCUSED)" : ""
+		} ${incompleteTasks[i].text} | `;
 	}
 	reply = reply.slice(0, -3);
 
@@ -699,20 +1219,37 @@ function checkTasks(username) {
 	// }
 	// reply = reply.slice(0, -3);
 
-	return reply;
+	return {
+		status: 200,
+		body: {
+			reply: reply,
+		},
+	};
 }
 
 // 0: user has no tasks
 function listTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 	// filter completed tasks
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	if (incompleteTasks.length === 0) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no incomplete tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
@@ -729,15 +1266,12 @@ function listTasks(username) {
 		reply += `${incompleteTasks[i].text}, `;
 	}
 	reply = reply.slice(0, -2);
-	return reply;
-}
-
-function incompleteTasksCount(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username]) {
-		return 0;
-	}
-	return tasks[username].todos.filter((t) => !t.done).length;
+	return {
+		status: 200,
+		body: {
+			reply: reply,
+		},
+	};
 }
 
 // 0: user has no tasks
@@ -749,12 +1283,22 @@ function clearUserTasks(username) {
 	);
 
 	if (!username) {
-		return 0;
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
 	}
 
 	tasks[username].todos = [];
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	return {
+		status: 200,
+	};
 }
 
 function clearAllDoneTasks() {
@@ -766,15 +1310,35 @@ function clearAllDoneTasks() {
 	checkToAnimate();
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
+
+	return {
+		status: 200,
+	};
 }
 
 function clearAllTasks() {
+	localStorage.setItem(`tasks`, "{}");
+	cancelAnimation();
+	checkToAnimate();
+	renderTaskListToDOM();
+
+	return {
+		status: 200,
+	};
+}
+
+function clearAll() {
 	resetDB();
 	cancelAnimation();
 	checkToAnimate();
 	renderTaskListToDOM();
+
+	return {
+		status: 200,
+	};
 }
 
+// 200: success
 function clearAllExceptStreamer(streamer) {
 	// clear all tasks except for broadcasters
 	const tasks = JSON.parse(localStorage.tasks);
@@ -792,6 +1356,10 @@ function clearAllExceptStreamer(streamer) {
 	checkToAnimate();
 
 	renderTaskListToDOM();
+
+	return {
+		status: 200,
+	};
 }
 
 function renderTaskListToDOM() {
@@ -806,6 +1374,8 @@ function renderTaskListToDOM() {
 		for (const user in tasks) {
 			const userTasks = tasks[user];
 			if (userTasks.todos.length === 0) {
+				// remove user from tasks
+				delete tasks[user];
 				continue;
 			}
 
@@ -840,6 +1410,8 @@ function renderTaskListToDOM() {
 				if (task.done) {
 					taskElement.classList.add("done");
 					completedTasksCount++;
+				} else if (task.focus) {
+					taskElement.classList.add("focus");
 				}
 
 				taskElement.innerText = task.text;
@@ -851,6 +1423,7 @@ function renderTaskListToDOM() {
 			".task-count"
 		).innerText = `${completedTasksCount}/${totalTaskCount}`;
 	});
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	checkToAnimate();
 }
 
@@ -974,7 +1547,6 @@ function cancelAnimation() {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
-	// console.log("animation cancelled");
 }
 
 (function () {
