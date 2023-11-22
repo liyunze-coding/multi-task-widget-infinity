@@ -116,4 +116,12 @@
 }
 #main-container .task-wrapper .task-container .task .user-tasks .done {
   text-decoration: line-through;
+}
+#main-container .task-wrapper .task-container .task .user-tasks .focus {
+  background: var(--focus-task-background-color);
+  color: var(--focus-task-font-color);
+  padding: var(--focus-task-vertical-padding) var(--focus-task-horizontal-padding);
+  border-radius: var(--focus-task-border-radius);
+  width: -moz-fit-content;
+  width: fit-content;
 }/*# sourceMappingURL=taskList.css.map */

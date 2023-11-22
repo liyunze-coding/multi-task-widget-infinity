@@ -230,6 +230,99 @@ function addTask(username, userColor, task) {
 
 // 0: user has no tasks
 // 1: invalid input
+// 200: success
+function focusTask(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return;
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+	if (incompleteTasks.length === 0) {
+		return;
+	}
+
+	if (task.includes(",")) {
+		return;
+	}
+
+	let index = tasks[username].todos.findIndex(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+
+	if (index === -1) {
+		if (isInt(task)) {
+			index = parseInt(task) - 1; // ACTUAL INDEX
+		} else if (incompleteTasks.length === 1) {
+			index = tasks[username].todos.findIndex((t) => !t.done);
+		} else {
+			return;
+		}
+
+		if (index < 0 || index > tasks[username].todos.length - 1) {
+			return;
+		}
+	} else {
+		if (tasks[username].todos[index].done) {
+			return;
+		}
+	}
+
+	let focusedTask = tasks[username].todos[index].text;
+
+	// if task is already focused, return 1
+	if (tasks[username].todos[index].focus) {
+		return;
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	// set task to focused
+	tasks[username].todos[index].focus = true;
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
+	return {
+		status: 200,
+		body: {
+			focusedTask: focusedTask,
+		},
+	};
+}
+
+// 0: user has no tasks
+// 1: invalid input
+// 200: success
+function unfocusTask(username) {
+	const tasks = JSON.parse(localStorage.tasks);
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return;
+	}
+
+	// if no tasks are focused, return 1
+	if (!tasks[username].todos.find((t) => t.focus)) {
+		return;
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+}
+
+// 0: user has no tasks
+// 1: invalid input
 // removed task: success
 function removeTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
@@ -841,6 +934,8 @@ function renderTaskListToDOM() {
 				if (task.done) {
 					taskElement.classList.add("done");
 					completedTasksCount++;
+				} else if (task.focus) {
+					taskElement.classList.add("focus");
 				}
 
 				taskElement.innerText = task.text;

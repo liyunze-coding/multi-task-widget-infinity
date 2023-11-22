@@ -7,6 +7,10 @@ function isMod(flags) {
 	return flags.broadcaster || flags.mod;
 }
 
+function isStreamer(flags) {
+	return flags.broadcaster;
+}
+
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	command = `!${command.toLowerCase()}`;
 
@@ -35,14 +39,40 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 
 		clearUserTasks(mentioned);
+	} else if (commands.focusTaskCommands.includes(command)) {
+		let focusRequest = focusTask(user, message);
+
+		if (focusRequest.status !== 200) {
+			respond(focusRequest.body.error, params);
+			return;
+		}
+
+		// task focused
+		let focusedResponse = responses.taskFocused;
+
+		params.task = focusRequest.body.focusedTask;
+
+		respond(focusedResponse, params);
+	} else if (commands.unfocusTaskCommands.includes(command)) {
+		let unfocusRequest = unfocusTask(user);
+
+		if (unfocusRequest.status !== 200) {
+			respond(unfocusRequest.body.error, params);
+			return;
+		}
+
+		// task unfocused
+		let unfocusedResponse = responses.taskUnfocused;
+
+		respond(unfocusedResponse, params);
 	} else if (commands.adminClearDoneCommands.includes(command)) {
-		if (!isMod(flags)) {
+		if (!isStreamer(flags)) {
 			return;
 		} else {
 			clearAllDoneTasks();
 		}
 	} else if (commands.adminClearAllCommands.includes(command)) {
-		if (!isMod(flags)) {
+		if (!isStreamer(flags)) {
 			return;
 		} else {
 			clearAllTasks();
@@ -50,7 +80,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	} else if (commands.clearMyDoneCommands.includes(command)) {
 		clearOwnDoneTasks(user);
 	} else if (commands.adminClearNotStreamerCommands.includes(command)) {
-		if (!isMod(flags)) {
+		if (!isStreamer(flags)) {
 			return;
 		} else {
 			clearAllExceptStreamer(auth.channel);

@@ -15,7 +15,7 @@ const configs = (function () {
 	// STYLES
 	// task list
 	const taskListBackgroundColor = "#000000"; // hex only
-	const taskListBackgroundOpacity = 1; // 0.0 - 1.0
+	const taskListBackgroundOpacity = 0; // 0.0 - 1.0
 
 	const taskListBorderWidth = "0px"; // px
 	const taskListBorderColor = "#ffffff"; // hex or name
@@ -28,10 +28,10 @@ const configs = (function () {
 	const headerHorizontalPadding = "10px"; // px
 	const headerVerticalPadding = "10px"; // px
 
-	const headerBackgroundColor = "#000"; // hex only
+	const headerBackgroundColor = "#fff"; // hex only
 	const headerBackgroundOpacity = 1; // 0.0 - 1.0
 
-	const headerBorderWidth = "2px"; // px
+	const headerBorderWidth = "0px"; // px
 	const headerBorderColor = "#ffffff"; // hex or name
 	const headerBorderRadius = "3px"; // px
 
@@ -41,7 +41,7 @@ const configs = (function () {
 	const headerFontSize = "25px"; // px
 	const headerFontWeight = "bold"; // normal or bold or number
 
-	const headerFontColor = "#fff"; // hex or name
+	const headerFontColor = "#000"; // hex or name
 
 	// body
 	const bodyBackgroundColor = "#fff"; // hex only
@@ -74,6 +74,16 @@ const configs = (function () {
 	const taskMarginBottom = "10px"; // px
 	const taskHorizontalPadding = "20px"; // px
 	const taskVerticalPadding = "10px"; // px
+
+	// focus task
+	const focusTaskBackgroundColor = "#fff"; // hex only
+	const focusTaskBackgroundOpacity = 1; // 0.0 - 1.0
+	const focusTaskBorderRadius = "5px"; // px
+
+	const focusTaskFontColor = "#000"; // hex or name
+
+	const focusTaskHorizontalPadding = "7px"; // px
+	const focusTaskVerticalPadding = "0px"; // px
 
 	const titles = [
 		"!taskhelp",
@@ -133,6 +143,12 @@ const configs = (function () {
 		taskMarginBottom,
 		taskHorizontalPadding,
 		taskVerticalPadding,
+		focusTaskBackgroundColor,
+		focusTaskBackgroundOpacity,
+		focusTaskBorderRadius,
+		focusTaskFontColor,
+		focusTaskHorizontalPadding,
+		focusTaskVerticalPadding,
 	};
 
 	const animation = {
