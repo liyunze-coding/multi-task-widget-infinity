@@ -109,11 +109,10 @@ body {
 }
 #main-container .task-wrapper .task-container .task .username {
   font-weight: var(--username-font-weight);
+  font-size: var(--username-font-size);
 }
 #main-container .task-wrapper .task-container .task .user-tasks {
   list-style-position: inside;
-  width: -moz-fit-content;
-  width: fit-content;
 }
 #main-container .task-wrapper .task-container .task .user-tasks .todo {
   overflow: hidden;
@@ -122,6 +121,7 @@ body {
 }
 #main-container .task-wrapper .task-container .task .user-tasks .done {
   text-decoration: line-through;
+  color: var(--done-task-font-color);
 }
 #main-container .task-wrapper .task-container .task .user-tasks .focus {
   background: var(--focus-task-background-color);

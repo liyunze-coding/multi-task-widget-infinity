@@ -55,6 +55,7 @@ const configs = (function () {
 	const lineHeight = 1.5; // number
 	const usernameFontWeight = "bold"; // normal or bold or number
 	const usernameColor = "pink"; // hex or name or "" for twitch user color
+	const usernameFontSize = "20px"; // px
 
 	const taskWidth = "100%";
 
@@ -74,6 +75,9 @@ const configs = (function () {
 	const taskMarginBottom = "10px"; // px
 	const taskHorizontalPadding = "20px"; // px
 	const taskVerticalPadding = "10px"; // px
+
+	// done task
+	const doneTaskFontColor = "#bbb"; // hex or name
 
 	// focus task
 	const focusTaskBackgroundColor = "#fff"; // hex only
@@ -384,6 +388,8 @@ const configs = (function () {
 		lineHeight,
 		usernameFontWeight,
 		usernameColor,
+		usernameFontSize,
+		doneTaskFontColor,
 		taskBackgroundColor,
 		taskBackgroundOpacity,
 		taskFontFamily,
