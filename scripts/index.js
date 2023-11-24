@@ -167,7 +167,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 
 		// task unfocused
-		let unfocusedResponse = responses.taskUnfocused;
+		let unfocusedResponse = responses.clearFocused;
 
 		respond(unfocusedResponse, params);
 	} else if (commands.checkCommands.includes(command)) {
