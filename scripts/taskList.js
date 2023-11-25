@@ -19,6 +19,7 @@ const scrollSpeed = configs.animation.scrollSpeed;
 const responses = configs.responses;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
+const taskSeparator = configs.settings.taskSeparator;
 
 function loadGoogleFont(font) {
 	WebFont.load({
@@ -308,8 +309,12 @@ function addTask(username, userColor, task) {
 	let tasksFailedToAdd = [];
 
 	// if task has commas
-	if (task.includes(",")) {
-		let tasksToAdd = task.split(",").map((t) => t.trim());
+	if (taskSeparator.some((char) => task.includes(char))) {
+		let tasksToAdd = [];
+
+		let char = taskSeparator.find((element) => task.includes(element));
+
+		tasksToAdd = task.split(char).map((t) => t.trim());
 
 		if (
 			incompleteTasksCount(username) + tasksToAdd.length >
@@ -559,8 +564,13 @@ function removeTask(username, task) {
 	let tasksFailedToRemove = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToRemove = task.split(",").map((t) => t.trim());
+	if (task.includes(",") || task.includes(";")) {
+		let tasksToRemove = [];
+
+		let char = taskSeparator.find((element) => task.includes(element));
+
+		tasksToRemove = task.split(char).map((t) => t.trim());
+
 		for (const t of tasksToRemove) {
 			let index = tasks[username].todos.findIndex(
 				(task) => task.text.toLowerCase() === t.toLowerCase()
@@ -749,8 +759,15 @@ function markTaskDone(username, task) {
 	let tasksFailedToComplete = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToMarkDone = task.split(",").map((t) => t.trim());
+	if (task.includes(",") || task.includes(";")) {
+		// let tasksToMarkDone = task.split(",").map((t) => t.trim());
+
+		let tasksToMarkDone = [];
+
+		let char = taskSeparator.find((element) => task.includes(element));
+
+		tasksToMarkDone = task.split(char).map((t) => t.trim());
+
 		for (const t of tasksToMarkDone) {
 			let index = tasks[username].todos.findIndex(
 				(task) => task.text.toLowerCase() === t.toLowerCase()
@@ -963,8 +980,13 @@ function markTaskUndone(username, task) {
 	let tasksFailedToMarkUndone = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToMarkUndone = task.split(",").map((t) => t.trim());
+	if (task.includes(",") || task.includes(";")) {
+		let tasksToMarkUndone;
+
+		let char = taskSeparator.find((element) => task.includes(element));
+
+		tasksToMarkUndone = task.split(char).map((t) => t.trim());
+
 		for (const t of tasksToMarkUndone) {
 			let index = tasks[username].todos.findIndex(
 				(task) => task.text.toLowerCase() === t.toLowerCase()

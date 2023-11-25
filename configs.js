@@ -7,6 +7,7 @@ const configs = (function () {
 	const automaticDoneIndex = true; // true or false - Automatically assume first unfinished task is complete
 	const pointsName = "points"; // string
 	const pointsPerTask = 10; // integer
+	const taskSeparator = [";", ","]; // array of strings
 
 	// animation
 	const scrollSpeed = 40; // milliseconds
@@ -356,6 +357,7 @@ const configs = (function () {
 		automaticDoneIndex,
 		pointsName,
 		pointsPerTask,
+		taskSeparator,
 		headerGoogleFont,
 		taskGoogleFont,
 	};
