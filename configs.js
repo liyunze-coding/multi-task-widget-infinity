@@ -287,8 +287,8 @@ const configs = (function () {
 	const noTaskEdit = "Try doing !edit [index] [new task] {user}";
 
 	// Responses related to task focus
-	const taskFocused = 'Task(s) "{task}" has been focused, {user}!';
-	const clearFocused = "Task(s) has been unfocused, {user}!";
+	const taskFocused = 'Task "{task}" has been focused, {user}!';
+	const clearFocused = "Task has been unfocused, {user}!";
 	const noFocusedTask = "Looks like you don't have a focused task {user}!";
 	const alreadyFocusedTask =
 		"Looks like you already have that task set to focus {user}!";
