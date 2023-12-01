@@ -1326,6 +1326,10 @@ function clearUserTasks(username) {
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
 	return {
 		status: 200,
 	};
