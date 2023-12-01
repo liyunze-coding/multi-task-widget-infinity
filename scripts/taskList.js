@@ -530,6 +530,10 @@ function unfocusTask(username) {
 
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
 	return {
 		status: 200,
 	};
@@ -998,11 +1002,13 @@ function markTaskUndone(username, task) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else {
 					tasksFailedToMarkUndone.push(t);
+
 					continue;
 				}
 
 				if (index < 0 || index > tasks[username].todos.length - 1) {
 					tasksFailedToMarkUndone.push(t);
+
 					continue;
 				} else {
 					tasksMarkedUndone.push(
@@ -1011,8 +1017,8 @@ function markTaskUndone(username, task) {
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
-				addDoneCount(username, -1);
 			}
+			addDoneCount(username, -1);
 			tasks[username].todos[index].done = false;
 		}
 
@@ -1069,6 +1075,7 @@ function markTaskUndone(username, task) {
 			}
 
 			tasks[username].todos[index].done = false;
+			addDoneCount(username, -1);
 
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
 
@@ -1084,6 +1091,7 @@ function markTaskUndone(username, task) {
 			};
 		} else {
 			tasks[username].todos[index].done = false;
+			addDoneCount(username, -1);
 
 			localStorage.setItem(`tasks`, JSON.stringify(tasks));
 
