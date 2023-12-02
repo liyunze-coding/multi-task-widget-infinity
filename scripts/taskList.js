@@ -1341,7 +1341,6 @@ function clearAllDoneTasks() {
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
 	cancelAnimation();
-	checkToAnimate();
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	renderTaskListToDOM();
 
@@ -1353,7 +1352,6 @@ function clearAllDoneTasks() {
 function clearAllTasks() {
 	localStorage.setItem(`tasks`, "{}");
 	cancelAnimation();
-	checkToAnimate();
 	renderTaskListToDOM();
 
 	return {
@@ -1387,7 +1385,6 @@ function clearAllExceptStreamer(streamer) {
 	clearAllDoneTasks();
 
 	cancelAnimation();
-	checkToAnimate();
 
 	renderTaskListToDOM();
 
