@@ -29,13 +29,22 @@ function loadGoogleFont(font) {
 	});
 }
 
-// convert taskListBorderColor to task-list-border-color
+/**
+ * Converts a camelCase string to a CSS variable format.
+ *
+ * @param {string} name - The camelCase string to convert.
+ * @returns {string} The converted string in CSS variable format.
+ */
 function convertToCSSVar(name) {
 	let cssVar = name.replace(/([A-Z])/g, "-$1").toLowerCase();
 	return `--${cssVar}`;
 }
-
-// hex to rgb that accepts 3 or 6 digits
+/**
+ * Converts a hexadecimal color value to its RGB equivalent.
+ *
+ * @param {string} hex - The hexadecimal color value. Can be 3 or 6 digits, with or without a leading '#'.
+ * @returns {string} The RGB color value as a string in the format 'r, g, b'.
+ */
 function hexToRgb(hex) {
 	// remove # if present
 	if (hex[0] === "#") {
@@ -58,7 +67,7 @@ function hexToRgb(hex) {
 		b = "0x" + hex[4] + hex[5];
 	}
 
-	// interger value of rgb
+	// integer value of rgb
 	r = +r;
 	g = +g;
 	b = +b;
@@ -156,6 +165,12 @@ function setupDB() {
 	}
 }
 
+/**
+ * Counts the number of incomplete tasks for a given user.
+ *
+ * @param {string} username - The name of the user whose tasks are to be counted.
+ * @returns {number} The number of incomplete tasks for the user.
+ */
 function incompleteTasksCount(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
@@ -164,6 +179,12 @@ function incompleteTasksCount(username) {
 	return tasks[username].todos.filter((t) => !t.done).length;
 }
 
+/**
+ * Counts the number of completed tasks for a given user.
+ *
+ * @param {string} username - The name of the user whose tasks are to be counted.
+ * @returns {number} The number of completed tasks for the user.
+ */
 function completedTasksCount(username) {
 	const counts = JSON.parse(localStorage.counts);
 	if (!counts.users[username.toLowerCase()]) {
@@ -172,10 +193,21 @@ function completedTasksCount(username) {
 	return counts.users[username.toLowerCase()].completeCount;
 }
 
+/**
+ * Gets the total number of tasks for a given user.
+ *
+ * @param {string} username - The name of the user whose tasks are to be counted.
+ * @returns {number} The total number of tasks for the user.
+ */
 function getUserTotalTaskCount(username) {
 	return incompleteTasksCount(username) + completedTasksCount(username);
 }
-
+/**
+ * Adds a specified value to the completed task count for a given user and the total completed task count.
+ *
+ * @param {string} username - The name of the user whose completed task count is to be incremented.
+ * @param {number} value - The value to be added to the completed task count.
+ */
 function addDoneCount(username, value) {
 	const counts = JSON.parse(localStorage.counts);
 
@@ -203,6 +235,12 @@ function setTotalCompleteCount(value) {
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 }
 
+/**
+ * Calculates the total points for a given user based on the number of completed tasks and the points per task setting.
+ *
+ * @param {string} username - The name of the user whose points are to be calculated.
+ * @returns {number} The total points for the user.
+ */
 function calculatePoints(username) {
 	const counts = JSON.parse(localStorage.counts);
 
@@ -216,6 +254,11 @@ function calculatePoints(username) {
 	);
 }
 
+/**
+ * Gets the total number of completed tasks across all users.
+ *
+ * @returns {number} The total number of completed tasks.
+ */
 function getBoardTotalTaskCount() {
 	const counts = JSON.parse(localStorage.counts);
 
@@ -242,11 +285,18 @@ function resetUsersCount() {
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 }
 
-// status, body
-// 0: limit has reached
-// 1: duplicate task
-// 2: invalid input
-// 200: success
+/**
+ * Adds a task to the task list for a given user.
+ * If the task is successfully added,
+ *     the function returns an object with a status of 200 and the task text.
+ * If the task is not added due to reaching the task limit, being a duplicate task, or being invalid input,
+ *     the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user to whom the task is to be added.
+ * @param {string} userColor - The color associated with the user.
+ * @param {string} task - The text of the task to be added.
+ * @returns {Object} An object with a status and body. The status is 200 if the task is successfully added, and the body contains the task text. If the task is not added, the status indicates the error and the body contains an error message.
+ */
 function addTask(username, userColor, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username]) {
@@ -384,9 +434,13 @@ function addTask(username, userColor, task) {
 	};
 }
 
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
+/**
+ * Focuses a specified task for a given user. If the task is successfully focused, the function returns an object with a status of 200 and the focused task. If the task is not focused due to the user having no tasks, the task being invalid input, or the task already being focused, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose task is to be focused.
+ * @param {string} task - The task to be focused.
+ * @returns {Object} An object with a status and body. The status is 200 if the task is successfully focused, and the body contains the focused task. If the task is not focused, the status indicates the error and the body contains an error message.
+ */
 function focusTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -496,9 +550,12 @@ function focusTask(username, task) {
 	};
 }
 
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
+/**
+ * Unfocuses all tasks for a given user. If the tasks are successfully unfocused, the function returns an object with a status of 200. If the tasks are not unfocused due to the user having no tasks or no tasks being focused, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose tasks are to be unfocused.
+ * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully unfocused. If the tasks are not unfocused, the status indicates the error and the body contains an error message.
+ */
 function unfocusTask(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -539,9 +596,13 @@ function unfocusTask(username) {
 	};
 }
 
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
+/**
+ * Removes a specified task for a given user. If the task is successfully removed, the function returns an object with a status of 200 and the removed task. If the task is not removed due to the user having no tasks, the task being invalid input, or the task not existing, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user from whom the task is to be removed.
+ * @param {string} task - The task to be removed.
+ * @returns {Object} An object with a status and body. The status is 200 if the task is successfully removed, and the body contains the removed task. If the task is not removed, the status indicates the error and the body contains an error message.
+ */
 function removeTask(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -682,7 +743,12 @@ function removeTask(username, task) {
 	}
 }
 
-// function to determine if string is integer
+/**
+ * Determines if a given value is an integer.
+ *
+ * @param {string} value - The value to be checked.
+ * @returns {boolean} Returns true if the value is an integer, and false otherwise.
+ */
 function isInt(value) {
 	return (
 		!isNaN(value) &&
@@ -691,8 +757,12 @@ function isInt(value) {
 	);
 }
 
-// 0: user has no tasks
-// 200: success
+/**
+ * Clears all completed tasks for a given user. If the tasks are successfully cleared, the function returns an object with a status of 200. If the tasks are not cleared due to the user having no tasks, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose completed tasks are to be cleared.
+ * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully cleared. If the tasks are not cleared, the status indicates the error and the body contains an error message.
+ */
 function clearOwnDoneTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -721,10 +791,13 @@ function clearOwnDoneTasks(username) {
 	};
 }
 
-// 0: user has no tasks
-// 1: invalid input
-// 2: task is already completed
-// 200: succcess
+/**
+ * Marks a specified task as done for a given user. If the task is successfully marked as done, the function returns an object with a status of 200 and the marked task. If the task is not marked as done due to the user having no tasks, the task being invalid input, or the task already being completed, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose task is to be marked as done.
+ * @param {string} task - The task to be marked as done.
+ * @returns {Object} An object with a status and body. The status is 200 if the task is successfully marked as done, and the body contains the marked task. If the task is not marked as done, the status indicates the error and the body contains an error message.
+ */
 function markTaskDone(username, task) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -919,8 +992,12 @@ function markTaskDone(username, task) {
 	}
 }
 
-// 0: user has no tasks
-// 200: success
+/**
+ * Marks all tasks as done for a given user. If the tasks are successfully marked as done, the function returns an object with a status of 200. If the tasks are not marked as done due to the user having no tasks, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose tasks are to be marked as done.
+ * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully marked as done. If the tasks are not marked as done, the status indicates the error and the body contains an error message.
+ */
 function markAllTasksAsDone(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -1109,9 +1186,15 @@ function markTaskUndone(username, task) {
 	}
 }
 
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
+/**
+ * Edits a specified task for a given user. If the task is successfully edited, the function returns an object with a status of 200, the original task, and the new task.
+ * If the task is not edited due to the user having no tasks, the task being invalid input, or the task index being out of range,
+ * the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose task is to be edited.
+ * @param {string} message - The message containing the task index and the new task.
+ * @returns {Object} An object with a status and body. The status is 200 if the task is successfully edited, and the body contains the original task and the new task. If the task is not edited, the status indicates the error and the body contains an error message.
+ */
 function editTask(username, message) {
 	const tasks = JSON.parse(localStorage.tasks);
 	let noSpecifiedIndex = false;
@@ -1194,7 +1277,12 @@ function editTask(username, message) {
 	};
 }
 
-// 0: user has no tasks
+/**
+ * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose tasks are to be checked.
+ * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
+ */
 function checkTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 
@@ -1304,7 +1392,13 @@ function listTasks(username) {
 	};
 }
 
-// 0: user has no tasks
+/**
+ * Clears all tasks for a given user. If the tasks are successfully cleared, the function returns an object with a status of 200.
+ * If the tasks are not cleared due to the user having no tasks, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} username - The name of the user whose tasks are to be cleared.
+ * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully cleared. If the tasks are not cleared, the status indicates the error and the body contains an error message.
+ */
 function clearUserTasks(username) {
 	const tasks = JSON.parse(localStorage.tasks);
 	// find username where lowercase matches username
@@ -1335,6 +1429,11 @@ function clearUserTasks(username) {
 	};
 }
 
+/**
+ * Clears all completed tasks for all users. If the tasks are successfully cleared, the function returns an object with a status of 200. If there are no tasks to clear, the function still returns an object with a status of 200 as it's considered a successful operation.
+ *
+ * @returns {Object} An object with a status. The status is 200 if the tasks are successfully cleared.
+ */
 function clearAllDoneTasks() {
 	const tasks = JSON.parse(localStorage.tasks);
 	for (const user in tasks) {
