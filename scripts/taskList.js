@@ -1318,7 +1318,7 @@ function checkTasks(username) {
 			) + 1;
 
 		reply += `${taskIndex}. ${
-			incompleteTasks[i].focus ? "(FOCUSED)" : ""
+			incompleteTasks[i].focus ? "(ongoing)" : ""
 		} ${incompleteTasks[i].text} | `;
 	}
 	reply = reply.slice(0, -3);
@@ -1562,22 +1562,15 @@ function sleep(ms) {
 }
 
 // unit tests
-async function tests1() {
+async function tests() {
 	let listOfStreamers = [
-		`cloudydayzzz`,
-		`berryspace`,
-		`MohFocus`,
-		`xeno_hiraeth`,
-		`euphie___`,
-		`unknownnie`,
-		`theyolotato`,
-		// `charliosaurus`,
-		// `jutstreams`,
-		// `mikewhatwhere`,
-		// `studypaws`,
-		// `pcc_lanezzz`,
-		// `workwithjandj`,
-		// `studylena`,
+		`followRythonDev1`,
+		`followRythonDev2`,
+		`followRythonDev3`,
+		`followRythonDev4`,
+		`followRythonDev5`,
+		`followRythonDev6`,
+		`followRythonDev7`,
 	];
 
 	for (let i = 0; i < listOfStreamers.length; i++) {
@@ -1681,6 +1674,10 @@ function cancelAnimation() {
 
 (function () {
 	setupDB();
+	if (settings.testTasks) {
+		resetDB();
+		tests();
+	}
 	importStyles();
 	renderTaskListToDOM();
 })();

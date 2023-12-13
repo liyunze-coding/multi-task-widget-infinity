@@ -9,6 +9,9 @@ const configs = (function () {
 	const pointsPerTask = 10; // integer
 	const taskSeparator = [";", ","]; // array of strings
 
+	// SETTING THIS 'TRUE' WILL RESET EXISTING TASKS
+	const testTasks = true; // true or false
+
 	// animation
 	const scrollSpeed = 40; // milliseconds
 	const gapBetweenScrolls = 0; // px
@@ -60,7 +63,7 @@ const configs = (function () {
 
 	const taskWidth = "100%";
 
-	const taskBackgroundColor = "#fff"; // hex only
+	const taskBackgroundColor = "#000"; // hex only
 	const taskBackgroundOpacity = 0; // 0.0 - 1.0
 
 	const taskFontFamily = "Poppins"; // font name
@@ -360,6 +363,7 @@ const configs = (function () {
 		taskSeparator,
 		headerGoogleFont,
 		taskGoogleFont,
+		testTasks,
 	};
 
 	const styles = {
