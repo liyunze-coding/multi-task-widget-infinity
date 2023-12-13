@@ -10,7 +10,7 @@ const configs = (function () {
 	const taskSeparator = [";", ","]; // array of strings
 
 	// SETTING THIS 'TRUE' WILL RESET EXISTING TASKS
-	const testTasks = true; // true or false
+	const testTasks = false; // true or false
 
 	// animation
 	const scrollSpeed = 40; // milliseconds
