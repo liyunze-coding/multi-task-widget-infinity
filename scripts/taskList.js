@@ -269,6 +269,15 @@ function addDoneCount(username, value) {
 	counts.users[username.toLowerCase()].completeCount += value;
 	counts.totalCompleteCount += value;
 
+	// check if user has points
+	if (!counts.users[username.toLowerCase()].points) {
+		counts.users[username.toLowerCase()].points = 0;
+	}
+
+	// add to points
+	counts.users[username.toLowerCase()].points +=
+		value * settings.pointsPerTask;
+
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 }
 
@@ -911,7 +920,7 @@ function removeTask(username, task) {
 	let tasksFailedToRemove = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",") || task.includes(";")) {
+	if (taskSeparator.some((separator) => task.includes(separator))) {
 		let tasksToRemove = [];
 
 		let char = taskSeparator.find((element) => task.includes(element));
@@ -1118,7 +1127,7 @@ function markTaskDone(username, task) {
 	let tasksFailedToComplete = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",") || task.includes(";")) {
+	if (taskSeparator.some((separator) => task.includes(separator))) {
 		// let tasksToMarkDone = task.split(",").map((t) => t.trim());
 
 		let tasksToMarkDone = [];
@@ -1343,7 +1352,7 @@ function markTaskUndone(username, task) {
 	let tasksFailedToMarkUndone = [];
 
 	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",") || task.includes(";")) {
+	if (taskSeparator.some((separator) => task.includes(separator))) {
 		let tasksToMarkUndone;
 
 		let char = taskSeparator.find((element) => task.includes(element));
