@@ -207,6 +207,29 @@ const configs = (function () {
 		"!checkpoints",
 	];
 
+	// sync points with count commands - please add commands in the exact format
+	const syncCountPointsCommands = ["!syncpoints", "!synccount"];
+
+	const addPointsCommands = ["!addpoints", "!givepoints", "!adduserpoints"];
+
+	const reducePointsCommands = ["!reducepoints", "!takepoints"];
+
+	const setUserPointsCommands = [
+		"!setuserpoints",
+		"!setpoints",
+		"!setpointsuser",
+		"!setuserpoint",
+	];
+
+	const setUserTaskCountCommands = [
+		"!setusertaskcount",
+		"!settaskcount",
+		"!settaskcountuser",
+		"!setusertask",
+	];
+
+	const leaderboardCommands = ["!leaderboard", "!lb", "!top", "!toppoints"];
+
 	// Help commands - please add commands in the exact format
 	const helpCommands = [
 		"!taskh",
@@ -303,7 +326,7 @@ const configs = (function () {
 	const noTask = "Looks like you don't have a task up there {user}";
 	const noTaskA = "Looks like there is no task from that user there {user}";
 
-	// Responses related to viewing counts
+	// Responses related to viewing counts / points
 	const checkMyPoints = "You have {pointCount} {pointName}, {user}!";
 	const checkUserPoints =
 		"{mentioned} has {pointCount} {pointName}, {user}!";
@@ -314,6 +337,15 @@ const configs = (function () {
 	const checkAllCount =
 		"Everyone has completed {doneCount} task(s) so far, {user}!";
 	const noCountAll = "Looks like no one has completed a task yet {user}";
+	const leaderboard = "Leaderboard: {leaderboard}";
+
+	// Responses related to modifying points
+	const syncCountPoints = "Points have been synced with count, {user}!";
+	const addPoints = "{mentioned} has been given {pointCount} {pointName}!";
+	const reducePoints = "{mentioned} has lost {pointCount} {pointName}!";
+	const setUserPoints = "{mentioned} now has {pointCount} {pointName}!";
+	const setUserTaskCount = "{mentioned} now has {taskCount} tasks!";
+	const specifyPoints = "Try specifying a number of points {user}";
 
 	// Responses related to permissions
 	const notMod = "Permission denied, {user}; Mods only";
@@ -436,6 +468,12 @@ const configs = (function () {
 		checkCountCommands,
 		checkAllCountCommands,
 		checkMyPointsCommands,
+		syncCountPointsCommands,
+		addPointsCommands,
+		reducePointsCommands,
+		setUserPointsCommands,
+		setUserTaskCountCommands,
+		leaderboardCommands,
 		adminDeleteCommands,
 		adminClearNotStreamerCommands,
 		adminClearDoneCommands,
@@ -474,6 +512,13 @@ const configs = (function () {
 		checkUserCount,
 		checkAllCount,
 		noCountAll,
+		leaderboard,
+		syncCountPoints,
+		addPoints,
+		reducePoints,
+		setUserPoints,
+		setUserTaskCount,
+		specifyPoints,
 		notMod,
 		notStreamer,
 		help,

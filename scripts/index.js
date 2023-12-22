@@ -3,18 +3,11 @@ const commands = configs.commands;
 let params = {};
 
 function respond(template, params) {
-	ComfyJS.Say(
-		template
-			.replace("{user}", `@${params.user}`)
-			.replace("{message}", params.message)
-			.replace("{mentioned}", `@${params.mentioned}`)
-			.replace("{task}", params.task)
-			.replace("{originalTask}", params.originalTask)
-			.replace("{doneCount}", params.doneCount)
-			.replace("{count}", params.count)
-			.replace("{pointName}", params.pointName)
-			.replace("{pointCount}", params.pointCount)
-	);
+	Object.keys(params).forEach((key) => {
+		template = template.replace(`{${key}}`, params[key]);
+	});
+
+	ComfyJS.Say(template);
 }
 
 function isMod(flags) {
@@ -31,13 +24,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	params = {
 		user: user,
 		message: message,
-		mentioned: "",
-		task: "",
-		originalTask: "",
-		doneCount: "",
-		count: "",
 		pointName: configs.settings.pointsName,
-		pointCount: "",
 	};
 
 	if (commands.addTaskCommands.includes(command)) {
@@ -299,20 +286,171 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		respond(responses.checkAllCount, params);
 	} else if (commands.checkMyPointsCommands.includes(command)) {
 		if (message === "") {
-			let points = calculatePoints(user);
+			let points = getUserPoints(user);
 
 			params.pointCount = points;
 
 			return respond(responses.checkMyPoints, params);
 		} else {
 			let mentioned = message.replace("@", "");
-			let points = calculatePoints(mentioned);
+			let points = getUserPoints(mentioned);
 
 			params.pointCount = points;
 			params.mentioned = mentioned;
 
 			return respond(responses.checkUserPoints, params);
 		}
+	} else if (commands.syncCountPointsCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(responses.notStreamer, params);
+			return;
+		}
+
+		syncPointsToCount();
+		respond(responses.syncCountPoints, params);
+	} else if (commands.addPointsCommands.includes(command)) {
+		// !addpoints @user 100
+
+		if (!isMod(flags)) {
+			respond(responses.notMod, params);
+			return;
+		}
+
+		let mentioned = message.split(" ")[0].replace("@", "");
+
+		if (mentioned === "") {
+			respond(responses.specifyUser, params);
+			return;
+		}
+
+		let points = message.split(" ")[1];
+
+		if (points === undefined) {
+			respond(responses.specifyPoints, params);
+			return;
+		}
+
+		if (!/^\d+$/.test(points)) {
+			respond(responses.invalidNumber, params);
+			return;
+		}
+
+		points = parseInt(points);
+
+		addPoints(mentioned, points);
+
+		params.mentioned = mentioned;
+		params.pointCount = points;
+
+		respond(responses.addPoints, params);
+	} else if (commands.reducePointsCommands.includes(command)) {
+		if (!isMod(flags)) {
+			respond(responses.notMod, params);
+			return;
+		}
+
+		let mentioned = message.split(" ")[0].replace("@", "");
+
+		if (mentioned === "") {
+			respond(responses.specifyUser, params);
+			return;
+		}
+
+		let points = message.split(" ")[1];
+
+		if (points === undefined) {
+			respond(responses.specifyPoints, params);
+			return;
+		}
+
+		if (!/^\d+$/.test(points)) {
+			respond(responses.invalidNumber, params);
+			return;
+		}
+
+		reducePoints(mentioned, points);
+
+		params.mentioned = mentioned;
+		params.pointCount = points;
+
+		respond(responses.reducePoints, params);
+	} else if (commands.setUserPointsCommands.includes(command)) {
+		if (!isMod(flags)) {
+			respond(responses.notMod, params);
+			return;
+		}
+
+		let mentioned = message.split(" ")[0].replace("@", "");
+
+		if (mentioned === "") {
+			respond(responses.specifyUser, params);
+			return;
+		}
+
+		let points = message.split(" ")[1];
+
+		if (points === undefined) {
+			respond(responses.specifyPoints, params);
+			return;
+		}
+
+		if (!/^\d+$/.test(points)) {
+			respond(responses.invalidNumber, params);
+			return;
+		}
+
+		points = parseInt(points);
+
+		setUserPoints(mentioned, points);
+
+		params.mentioned = mentioned;
+		params.pointCount = points;
+
+		respond(responses.setUserPoints, params);
+	} else if (commands.setUserTaskCountCommands.includes(commands)) {
+		if (!isMod(flags)) {
+			respond(responses.notMod, params);
+			return;
+		}
+
+		let mentioned = message.split(" ")[0].replace("@", "");
+
+		if (mentioned === "") {
+			respond(responses.specifyUser, params);
+			return;
+		}
+
+		let count = message.split(" ")[1];
+
+		if (count === undefined) {
+			respond(responses.specifyCount, params);
+			return;
+		}
+
+		if (!/^\d+$/.test(count)) {
+			respond(responses.invalidNumber, params);
+			return;
+		}
+
+		points = parseInt(points);
+
+		setUserTaskCount(mentioned, count);
+
+		params.mentioned = mentioned;
+		params.pointCount = count;
+
+		respond(responses.setUserTaskCount, params);
+	} else if (commands.leaderboardCommands.includes(command)) {
+		let leaderboardResponse = leaderboardTaskCount(5);
+
+		if (leaderboardResponse.status !== 200) {
+			respond(leaderboardResponse.body.error, params);
+			return;
+		}
+
+		let leaderboard = leaderboardResponse.body.leaderboard;
+
+		respond(leaderboard, params);
 	} else if (commands.adminSetBoardCount.includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(responses.notStreamer, params);

@@ -10,6 +10,7 @@ DB structure:
 	- users
 		- [username]:
 			- completeCount
+			- points
 	- totalCompleteCount
 */
 
@@ -75,7 +76,9 @@ function hexToRgb(hex) {
 	return `${r}, ${g}, ${b}`;
 }
 
-// import styles from configs
+/**
+ * import styles from configs
+ */
 function importStyles() {
 	const styles = configs.styles;
 
@@ -151,11 +154,17 @@ function importStyles() {
 	}, 8000);
 }
 
+/**
+ * Resets the entire localstorage
+ */
 function resetDB() {
 	localStorage.clear();
 	setupDB();
 }
 
+/**
+ * Sets up the local storage database.
+ */
 function setupDB() {
 	if (!localStorage.tasks) {
 		localStorage.setItem(`tasks`, "{}");
@@ -202,6 +211,42 @@ function completedTasksCount(username) {
 function getUserTotalTaskCount(username) {
 	return incompleteTasksCount(username) + completedTasksCount(username);
 }
+
+/**
+ * Calculates the total points for a given user based on the number of completed tasks and the points per task setting.
+ *
+ * @param {string} username - The name of the user whose points are to be calculated.
+ * @returns {number} The total points for the user.
+ */
+function calculatePoints(username) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		return 0;
+	}
+
+	return (
+		counts.users[username.toLowerCase()].completeCount *
+		settings.pointsPerTask
+	);
+}
+
+/**
+ * Retrieves the points of a specific user from local storage.
+ *
+ * @param {string} username - The name of the user.
+ * @returns {number} The points of the user. If the user does not exist, returns 0.
+ */
+function getUserPoints(username) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		return 0;
+	}
+
+	return counts.users[username.toLowerCase()].points;
+}
+
 /**
  * Adds a specified value to the completed task count for a given user and the total completed task count.
  *
@@ -227,31 +272,157 @@ function addDoneCount(username, value) {
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 }
 
+/**
+ * Sets the completed task count for a given user.
+ *
+ * @param {string} username
+ * @param {int} value
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
+ */
+function setUserCompleteCount(username, value) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		counts.users[username.toLowerCase()] = {
+			completeCount: 0,
+		};
+	}
+
+	if (!counts.users[username.toLowerCase()].completeCount) {
+		counts.users[username.toLowerCase()].completeCount = 0;
+	}
+
+	counts.users[username.toLowerCase()].completeCount = parseInt(value);
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully set ${username}'s complete count to ${value}`,
+		},
+	};
+}
+
+/**
+ * Sets the total count of completed tasks in local storage.
+ *
+ * @param {number} value - The new total count of completed tasks.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
+ */
 function setTotalCompleteCount(value) {
 	const counts = JSON.parse(localStorage.counts);
 
 	counts.totalCompleteCount = parseInt(value);
 
 	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully set total complete count to ${value}`,
+		},
+	};
 }
 
 /**
- * Calculates the total points for a given user based on the number of completed tasks and the points per task setting.
+ * Adds a specified number of points to a user's total in local storage.
  *
- * @param {string} username - The name of the user whose points are to be calculated.
- * @returns {number} The total points for the user.
+ * @param {string} username - The name of the user.
+ * @param {number} value - The number of points to add.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function calculatePoints(username) {
+function addPoints(username, value) {
 	const counts = JSON.parse(localStorage.counts);
 
 	if (!counts.users[username.toLowerCase()]) {
-		return 0;
+		counts.users[username.toLowerCase()] = {
+			points: 0,
+		};
 	}
 
-	return (
-		counts.users[username.toLowerCase()].completeCount *
-		settings.pointsPerTask
-	);
+	if (!counts.users[username.toLowerCase()].points) {
+		counts.users[username.toLowerCase()].points = 0;
+	}
+
+	console.log(counts.users[username.toLowerCase()].points);
+
+	counts.users[username.toLowerCase()].points += value;
+
+	console.log(counts.users[username.toLowerCase()].points);
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully added ${value} points to ${username}`,
+		},
+	};
+}
+
+/**
+ * Sets the points for a specific user in local storage.
+ *
+ * @param {string} username - The name of the user.
+ * @param {number} pointsCount - The new points count for the user.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
+ */
+function setUserPoints(username, pointsCount) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		counts.users[username.toLowerCase()] = {
+			points: 0,
+		};
+	}
+
+	if (!counts.users[username.toLowerCase()].points) {
+		counts.users[username.toLowerCase()].points = 0;
+	}
+
+	counts.users[username.toLowerCase()].points = pointsCount;
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully set ${username}'s points to ${pointsCount}`,
+		},
+	};
+}
+
+/**
+ * Reduces the points of a specific user in local storage by a specified value.
+ *
+ * @param {string} username - The name of the user.
+ * @param {number} value - The value by which the user's points are to be reduced.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
+ */
+function reducePoints(username, value) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		counts.users[username.toLowerCase()] = {
+			points: 0,
+		};
+	}
+
+	if (!counts.users[username.toLowerCase()].points) {
+		counts.users[username.toLowerCase()].points = 0;
+	}
+
+	counts.users[username.toLowerCase()].points -= parseInt(value);
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully reduced ${username}'s points by ${value}`,
+		},
+	};
 }
 
 /**
@@ -269,33 +440,144 @@ function getBoardTotalTaskCount() {
 	return counts.totalCompleteCount;
 }
 
+/**
+ * Sets the task count for a specific user in local storage and returns a success message.
+ *
+ * @param {string} username - The name of the user.
+ * @param {number} value - The new task count for the user.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
+ */
+function setUserTaskCount(username, value) {
+	const counts = JSON.parse(localStorage.counts);
+
+	if (!counts.users[username.toLowerCase()]) {
+		counts.users[username.toLowerCase()] = {
+			points: 0,
+		};
+	}
+
+	if (!counts.users[username.toLowerCase()].points) {
+		counts.users[username.toLowerCase()].points = 0;
+	}
+
+	counts.users[username.toLowerCase()].taskCount = parseInt(value);
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: `Successfully set ${username}'s task count to ${value}`,
+		},
+	};
+}
+
+/**
+ * Synchronizes the points of each user with their task count in local storage. After the synchronization, the function returns an object with a status of 200 and a success message.
+ *
+ * @returns {Object} An object with a status and body. The status is 200 if the synchronization is successful, and the body contains a success message.
+ */
+function syncPointsToCount() {
+	const counts = JSON.parse(localStorage.counts);
+
+	for (const user in counts.users) {
+		counts.users[user].points = calculatePoints(user);
+	}
+
+	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: "Successfully synced counts to points",
+		},
+	};
+}
+
+/**
+ * Gets the leaderboard of users based on task count.
+ *
+ * @param {number} limit - The maximum number of users to include in the leaderboard.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains an array of user objects, each with a username and task count, sorted in descending order of task count.
+ */
+function leaderboardTaskCount(limit) {
+	const counts = JSON.parse(localStorage.counts);
+
+	let leaderboardArray = [];
+
+	for (const user in counts.users) {
+		leaderboardArray.push({
+			username: user,
+			taskCount: getUserTotalTaskCount(user),
+		});
+	}
+
+	leaderboardArray.sort((a, b) => b.taskCount - a.taskCount);
+
+	// shorten to limit
+	leaderboardArray = leaderboardArray.slice(0, limit);
+
+	let leaderboardstring = "";
+
+	leaderboardArray.map((user, index) => {
+		leaderboardstring += `${index + 1}. @${user.username} : ${
+			user.taskCount
+		} | `;
+	});
+
+	leaderboardstring = leaderboardstring.slice(0, -3);
+
+	return {
+		status: 200,
+		body: {
+			leaderboard: leaderboardstring,
+		},
+	};
+}
+
+/**
+ * Resets the total count of completed tasks in the board to zero.
+ */
 function resetBoardCount() {
 	const counts = JSON.parse(localStorage.counts);
 
 	counts.totalCompleteCount = 0;
 
 	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: "Successfully reset board count",
+		},
+	};
 }
 
+/**
+ * Resets the task count for all users.
+ */
 function resetUsersCount() {
 	const counts = JSON.parse(localStorage.counts);
 
 	counts.users = {};
 
 	localStorage.setItem(`counts`, JSON.stringify(counts));
+
+	return {
+		status: 200,
+		body: {
+			message: "Successfully reset users count",
+		},
+	};
 }
 
 /**
- * Adds a task to the task list for a given user.
- * If the task is successfully added,
- *     the function returns an object with a status of 200 and the task text.
- * If the task is not added due to reaching the task limit, being a duplicate task, or being invalid input,
- *     the function returns an object with a status indicating the error and an error message.
+ * Adds a task to a user's task list.
  *
- * @param {string} username - The name of the user to whom the task is to be added.
- * @param {string} userColor - The color associated with the user.
- * @param {string} task - The text of the task to be added.
- * @returns {Object} An object with a status and body. The status is 200 if the task is successfully added, and the body contains the task text. If the task is not added, the status indicates the error and the body contains an error message.
+ * @param {string} username - The user's name.
+ * @param {string} userColor - The user's associated color.
+ * @param {string} task - The task text.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
 function addTask(username, userColor, task) {
 	const tasks = JSON.parse(localStorage.tasks);
