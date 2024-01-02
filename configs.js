@@ -1,6 +1,8 @@
 const configs = (function () {
 	"use strict";
 
+	const TwitchUsername = "rythondev";
+
 	// settings
 	const enableLimit = false; // true or false
 	const limit = 10; // integer
@@ -328,8 +330,7 @@ const configs = (function () {
 
 	// Responses related to viewing counts / points
 	const checkMyPoints = "You have {pointCount} {pointName}, {user}!";
-	const checkUserPoints =
-		"{mentioned} has {pointCount} {pointName}, {user}!";
+	const checkUserPoints = "{mentioned} has {pointCount} {pointName}, {user}!";
 	const checkYourCount =
 		"You have completed {doneCount} task(s) so far, {user}!";
 	const checkUserCount =

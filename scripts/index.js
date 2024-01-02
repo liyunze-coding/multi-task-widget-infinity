@@ -2,14 +2,145 @@ const commands = configs.commands;
 
 let params = {};
 
-function respond(template, params) {
+const client = new StreamerbotClient({
+	host: "127.0.0.1",
+	port: 6968,
+	subscribe: {
+		YouTube: ["Message"],
+		Twitch: ["ChatMessage"],
+	},
+	onData: onData,
+});
+
+async function respond(template, params = {}) {
 	Object.keys(params).forEach((key) => {
 		template = template.replace(`{${key}}`, params[key]);
 	});
 
-	ComfyJS.Say(template);
+	const source = params["source name"].toLowerCase();
+
+	if (source === "youtube") {
+		const streamerYTBotResponse = await client.doAction(
+			"390ff8f2-7945-4eba-be2a-a1c0e4ba535d",
+			{
+				response: template,
+			}
+		);
+
+		console.log(streamerYTBotResponse);
+	} else {
+		const streamerTwitchBotResponse = await client.doAction(
+			"8ff809be-e269-4f06-9528-021ef58df436",
+			{
+				response: template,
+			}
+		);
+
+		console.log(streamerTwitchBotResponse);
+	}
 }
 
+/**
+ * Handles incoming data, processes it if it's a YouTube message event.
+ *
+ * @param {Object} data - The incoming data object.
+ * @param {Object} data.event - The event details.
+ * @param {string} data.event.source - The source of the event.
+ * @param {string} data.event.type - The type of the event.
+ * @param {Object} data.data - The payload of the event.
+ * @param {string} data.data.message - The message from the event.
+ * @param {Object} data.data.user - The user who triggered the event.
+ * @param {string} data.data.user.name - The name of the user.
+ * @param {boolean} data.data.user.isOwner - Flag indicating if the user is the owner.
+ * @param {boolean} data.data.user.isModerator - Flag indicating if the user is a moderator.
+ */
+function onData(data) {
+	if (!data.event) return;
+	if (data.event.source === "YouTube" && data.event.type === "Message") {
+		const payload = data.data;
+
+		// check if message starts with prefix
+		if (!payload.message.startsWith("!")) return;
+
+		const command = payload.message.split(" ")[0];
+
+		// remove first word from message
+		const message = payload.message.split(" ").slice(1).join(" ");
+
+		// get user from payload
+		const user = payload.user.name;
+
+		// set flags
+		const flags = {
+			broadcaster: payload.user.isOwner,
+			mod: payload.user.isModerator,
+		};
+
+		let extra = {
+			userColor: "pink",
+		};
+
+		procressCommand(
+			user,
+			command,
+			message,
+			flags,
+			data.event.source,
+			extra
+		);
+	} else if (
+		data.event.source === "Twitch" &&
+		data.event.type === "ChatMessage"
+	) {
+		const payload = data.data;
+
+		const command = payload.message.message.split(" ")[0];
+
+		const user = payload.message.displayName;
+
+		const message = payload.message.message.split(" ").slice(1).join(" ");
+
+		// iterate through payload.message.badges
+		// each iteration has name in an object
+		// if name is "moderator" or "broadcaster", set flags.mod or flags.broadcaster to true
+		const badges = payload.message.badges;
+
+		const flags = {
+			broadcaster: false,
+			mod: false,
+		};
+
+		badges.forEach((badge) => {
+			if (badge.name === "broadcaster") {
+				flags.broadcaster = true;
+			} else if (badge.name === "moderator") {
+				flags.mod = true;
+			}
+		});
+
+		let extra = {
+			userColor: payload.message.color,
+		};
+
+		procressCommand(
+			user,
+			command,
+			message,
+			flags,
+			data.event.source,
+			extra
+		);
+	}
+}
+
+/**
+ * Checks if the user is a moderator or broadcaster.
+ *
+ * @param {Object} flags - The flags object.
+ * @param {boolean} flags.broadcaster - Flag indicating if the user is the broadcaster.
+ * @param {boolean} flags.mod - Flag indicating if the user is a moderator.
+ * @returns {boolean} Returns true if the user is a moderator or broadcaster, false otherwise.
+ */
 function isMod(flags) {
 	return flags.broadcaster || flags.mod;
 }
@@ -18,13 +149,12 @@ function isStreamer(flags) {
 	return flags.broadcaster;
 }
 
-ComfyJS.onCommand = (user, command, message, flags, extra) => {
-	command = `!${command.toLowerCase()}`;
-
+function procressCommand(user, command, message, flags, source, extra) {
 	params = {
 		user: user,
 		message: message,
 		pointName: configs.settings.pointsName,
+		"source name": source,
 	};
 
 	if (commands.addTaskCommands.includes(command)) {
@@ -166,7 +296,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 				return;
 			}
 
-			return ComfyJS.Say(checkRequest.body.reply);
+			return respond(checkRequest.body.reply, params);
 		} else {
 			let mentioned = message.replace("@", "");
 			let checkRequest = checkTasks(mentioned);
@@ -177,7 +307,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
 				return;
 			}
-			return ComfyJS.Say(checkRequest.body.reply);
+			return respond(checkRequest.body.reply, params);
 		}
 	} else if (commands.adminDeleteCommands.includes(command)) {
 		if (!isMod(flags)) {
@@ -237,7 +367,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 			return;
 		}
 
-		clearAllExceptStreamer(auth.channel);
+		clearAllExceptStreamer(configs.TwitchUsername);
 		respond(responses.clearTasksExceptBroadcaster, params);
 	} else if (commands.adminClearTasksCommands.includes(command)) {
 		if (!isStreamer(flags)) {
@@ -491,6 +621,4 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	} else {
 		// command not found
 	}
-};
-
-ComfyJS.Init(auth.username, `oauth:${auth.oauth}`, [auth.channel]);
+}
