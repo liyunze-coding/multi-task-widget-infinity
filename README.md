@@ -16,65 +16,44 @@ I'll just update you guys on the Discord
 
 ## Content
 
--   [Multi-Task widget Infinity (PRIVATE)](#multi-task-widget-infinity-private)
-    -   [Logs](#logs)
-    -   [Content](#content)
-    -   [Commands](#commands)
-        -   [Moderators only](#moderators-only)
-    -   [Installation](#installation)
-        -   [Method 1 (fastest, easiest way)](#method-1-fastest-easiest-way)
-        -   [Method 2 (better if you're using an alt account as a bot)](#method-2-better-if-youre-using-an-alt-account-as-a-bot)
-    -   [Customization settings](#customization-settings)
-        -   [settings](#settings)
-        -   [task list styles](#task-list-styles)
-        -   [header](#header)
-        -   [body](#body)
-        -   [task](#task)
-    -   [Credits](#credits)
-
----
-
-## Commands
-
-### Moderators only
-
--   !clear - Clear all tasks
--   !cleardone - Clear all done tasks
--   !adel @user - Remove all tasks from a user
+- [Multi-Task widget Infinity (PRIVATE)](#multi-task-widget-infinity-private)
+  - [Logs](#logs)
+  - [Content](#content)
+  - [Installation](#installation)
+  - [Customization settings](#customization-settings)
+    - [settings](#settings)
+    - [task list styles](#task-list-styles)
+    - [header](#header)
+    - [body](#body)
+    - [task](#task)
+  - [Credits](#credits)
 
 ---
 
 ## Installation
 
-### Method 1 (fastest, easiest way)
+1.  Install [Streamer.bot](https://streamer.bot/)
 
-1. Install the zip or clone the repository
+2.  Follow instruction video [HERE](https://youtu.be/CcXAs-qZ0Ys?t=116) on how to setup Streamer.bot \(until 5:43 timestamp\)
 
-2. Go to https://twitchapps.com/tmi/ to create an oauth token (it acts as a password)
+3.  Import StreamerBot Files `StreamerBotImport` as shown in this [VIDEO](https://youtu.be/eXn2zCu0k6k?t=298)
 
-3. Setup authentication in `auth.js`
+    -   set Auto Connect to Checked (recommended)
 
-4. Setup `Browser Source` in OBS studio or other streaming software with the following settings:
+4.  On StreamerBot, go to `Servers/Clients` > `Websocket Server`, and change to the following settings
 
--   Local File: `checked`
--   Local File: `index.html`
+    ![Websocket server settings](images/websocket_settings.png)
 
-### Method 2 (better if you're using an alt account as a bot)
+    -   Auto Start: `Checked`
+    -   Address: `127.0.0.1`
+    -   Port: `6968`
+    -   Endpoint: `/`
+    -   `Start Server`
 
-1. Install the zip or clone the repository
-
-2. Create a Twitch application [here](https://dev.twitch.tv/console/apps) \(Log in with your alternate Twitch account if you wish to use a different account as a bot account\)
-
-3. Copy the `Client ID` from the application
-
-4. Create token using `get_token.txt`. Replace `CLIENT_ID` with the `Client ID` from the application
-
-5. Setup authentication in `auth.js`
-
-6. Setup `Browser Source` in OBS studio or other streaming software with the following settings:
+5.  Setup `Browser Source` in OBS studio or other streaming software with the following settings:
 
 -   Local File: `checked`
--   Local File: `index.html`
+-   Browse to `index.html`
 
 ---
 
