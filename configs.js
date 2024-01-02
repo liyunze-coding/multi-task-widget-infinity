@@ -1,7 +1,7 @@
 const configs = (function () {
 	"use strict";
 
-	const TwitchUsername = "rythondev";
+	const StreamerUsernames = ["RythonDev"];
 
 	// settings
 	const enableLimit = false; // true or false
@@ -537,6 +537,7 @@ const configs = (function () {
 	};
 
 	return {
+		StreamerUsernames,
 		settings,
 		styles,
 		animation,

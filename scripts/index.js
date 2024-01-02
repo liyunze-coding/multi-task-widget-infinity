@@ -367,7 +367,7 @@ function procressCommand(user, command, message, flags, source, extra) {
 			return;
 		}
 
-		clearAllExceptStreamer(configs.TwitchUsername);
+		clearAllExceptStreamer(configs.StreamerUsernames);
 		respond(responses.clearTasksExceptBroadcaster, params);
 	} else if (commands.adminClearTasksCommands.includes(command)) {
 		if (!isStreamer(flags)) {

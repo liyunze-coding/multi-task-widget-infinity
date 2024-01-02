@@ -936,9 +936,7 @@ function removeTask(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
+					index = tasks[username].todos.findIndex((t) => !t.done);
 					tasksRemoved.push(tasks[username].todos[index].text);
 					removedTaskIndex.push(index);
 				} else {
@@ -1151,12 +1149,8 @@ function markTaskDone(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
+					index = tasks[username].todos.findIndex((t) => !t.done);
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
 					addDoneCount(username, 1);
 				} else {
@@ -1171,9 +1165,7 @@ function markTaskDone(username, task) {
 					tasksFailedToComplete.push(t);
 					continue;
 				} else {
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
 					addDoneCount(username, 1);
 				}
@@ -1226,8 +1218,7 @@ function markTaskDone(username, task) {
 			} else if (focusedTask) {
 				index = tasks[username].todos.findIndex(
 					(t) =>
-						t.text.toLowerCase() ===
-						focusedTask.text.toLowerCase()
+						t.text.toLowerCase() === focusedTask.text.toLowerCase()
 				);
 			} else if (settings.automaticDoneIndex) {
 				// index is the first incomplete task
@@ -1379,9 +1370,7 @@ function markTaskUndone(username, task) {
 
 					continue;
 				} else {
-					tasksMarkedUndone.push(
-						tasks[username].todos[index].text
-					);
+					tasksMarkedUndone.push(tasks[username].todos[index].text);
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
@@ -1760,12 +1749,25 @@ function clearAll() {
 	};
 }
 
-// 200: success
-function clearAllExceptStreamer(streamer) {
+/**
+ * Clears all tasks from the local storage except for those belonging to specified streamer usernames.
+ * After clearing, it also clears all done tasks, cancels any ongoing animation and re-renders the task list to the DOM.
+ *
+ * @param {string[]} streamerUsernames - An array of streamer usernames whose tasks should not be cleared.
+ * @returns {Object} An object with a status property indicating the success of the operation (200 for success).
+ */
+function clearAllExceptStreamer(streamerUsernames) {
 	// clear all tasks except for broadcasters
 	const tasks = JSON.parse(localStorage.tasks);
+
+	// streamerusernames lowercased
+
+	streamerUsernames = streamerUsernames.map((username) =>
+		username.toLowerCase()
+	);
+
 	for (const user in tasks) {
-		if (user.toLowerCase() !== streamer.toLowerCase()) {
+		if (!streamerUsernames.includes(user.toLowerCase())) {
 			tasks[user].todos = [];
 		}
 	}
