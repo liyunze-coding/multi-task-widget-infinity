@@ -364,7 +364,8 @@ const configs = (function () {
 	const invalidNumber = "Try specifying a valid number {user}";
 
 	// Help response
-	const help = `{user} Use the following commands to help you out - !task !edit !remove !done. For mods, you can do !adel @user. More commmands here: https://github.com/liyunze-coding/Chat-Task-Tic-Overlay/blob/main/MultiTask.md/`;
+	const twitchHelp = `{user} Use the following commands to help you out - !task !edit !remove !done. For mods, you can do !adel @user. More commmands here: https://github.com/liyunze-coding/Chat-Task-Tic-Overlay/blob/main/MultiTask.md/`;
+	const YTHelp = `{user} https://github.com/liyunze-coding/Chat-Task-Tic-Overlay/blob/main/MultiTask.md/`;
 	// to edit check task command, go to
 	// scripts/taskList.js
 	// function checkTasks(username)
@@ -522,7 +523,8 @@ const configs = (function () {
 		specifyPoints,
 		notMod,
 		notStreamer,
-		help,
+		twitchHelp,
+		YTHelp,
 		clearTasksExceptBroadcaster,
 		adminDeleteTasks,
 		clearedMyDone,

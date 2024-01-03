@@ -615,7 +615,11 @@ function procressCommand(user, command, message, flags, source, extra) {
 		resetUsersCount();
 		respond(responses.clearedUsersCount, params);
 	} else if (commands.helpCommands.includes(command)) {
-		respond(responses.help, params);
+		if (source.toLowerCase() === "youtube") {
+			respond(responses.YTHelp, params);
+		} else {
+			respond(responses.twitchHelp, params);
+		}
 	} else if (commands.additionalCommands[command]) {
 		respond(commands.additionalCommands[command], params);
 	} else {
