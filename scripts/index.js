@@ -56,6 +56,7 @@ async function respond(template, params = {}) {
  */
 function onData(data) {
 	if (!data.event) return;
+
 	if (data.event.source === "YouTube" && data.event.type === "Message") {
 		const payload = data.data;
 
