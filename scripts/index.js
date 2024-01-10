@@ -262,6 +262,21 @@ function procressCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(unfinishedResponse, params);
+	} else if (commands.nextTaskCommands.includes(command)) {
+		let nextRequest = nextTask(user, message);
+
+		if (nextRequest.status !== 200) {
+			respond(nextRequest.body.error, params);
+			return;
+		}
+
+		// task next
+		let nextResponse = responses.taskNext;
+
+		params.oldTask = nextRequest.body.oldTask;
+		params.newTask = nextRequest.body.newTask;
+
+		respond(nextResponse, params);
 	} else if (commands.focusTaskCommands.includes(command)) {
 		let focusRequest = focusTask(user, message);
 

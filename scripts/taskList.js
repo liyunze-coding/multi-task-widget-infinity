@@ -354,11 +354,7 @@ function addPoints(username, value) {
 		counts.users[username.toLowerCase()].points = 0;
 	}
 
-	console.log(counts.users[username.toLowerCase()].points);
-
 	counts.users[username.toLowerCase()].points += value;
-
-	console.log(counts.users[username.toLowerCase()].points);
 
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 
@@ -1027,6 +1023,64 @@ function removeTask(username, task) {
 			body: {
 				removedTasks: task,
 				failedTasks: "",
+			},
+		};
+	}
+}
+
+function nextTask(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	if (task === "") {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.nextNoContent,
+			},
+		};
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length !== 1) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has more than one incomplete task`,
+				error: responses.taskNextFailed,
+			},
+		};
+	} else {
+		// mark the incomplete task as complete, then add a new task "task"
+
+		// find index of incomplete task
+		let index = tasks[username].todos.findIndex((t) => !t.done);
+
+		let oldTask = tasks[username].todos[index].text;
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+
+		// add new task
+		tasks[username].todos.push({ text: task, done: false, focus: false });
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: task,
 			},
 		};
 	}

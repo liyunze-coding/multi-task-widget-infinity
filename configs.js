@@ -163,6 +163,16 @@ const configs = (function () {
 		"!u",
 	];
 
+	// Next task commands - please add commands in the exact format
+	const nextTaskCommands = [
+		"!taskn",
+		"!tasknext",
+		"!ntask",
+		"!nexttask",
+		"!next",
+		"!n",
+	];
+
 	// focus task commands - please add commands in the exact format
 	const focusTaskCommands = ["!focus", "!taskfocus", "!focustask"];
 
@@ -289,6 +299,11 @@ const configs = (function () {
 	const noTaskContent = "Try using !task the-task-you-are-working-on {user}";
 	const duplicateTask =
 		"Looks like you already have the task '{message}' up there {user}!";
+	const taskNext =
+		"Good job on finishing the task '{oldTask}'! Now moving onto '{newTask}', {user}!";
+	const nextNoContent = "Try using !next the-task-you-want-to-do-next {user}";
+	const taskNextFailed =
+		"Unable to perform command with multiple incomplete tasks, {user}!";
 
 	// Responses related to task deletion
 	const taskDeleted =
@@ -461,6 +476,7 @@ const configs = (function () {
 		deleteTaskCommands,
 		finishTaskCommands,
 		unfinishTaskCommands,
+		nextTaskCommands,
 		focusTaskCommands,
 		unfocusTaskCommands,
 		helpCommands,
@@ -494,6 +510,9 @@ const configs = (function () {
 		taskDeleted,
 		specifyTaskIndex,
 		duplicateTask,
+		taskNext,
+		nextNoContent,
+		taskNextFailed,
 		taskFinished,
 		allTasksFinished,
 		taskUnfinished,
