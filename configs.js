@@ -329,6 +329,7 @@ const configs = (function () {
 			"Try specifying the index of the incomplete task(s) {user}",
 		clearTasksExceptBroadcaster:
 			"All tasks have been cleared except for the streamer's, {user}!",
+		clearedTasks: "All tasks have been cleared, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s tasks have been deleted",
 
 		// Grouped by task completion responses

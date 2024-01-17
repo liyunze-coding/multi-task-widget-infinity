@@ -1182,8 +1182,12 @@ function removeTask(username, task) {
 
 		// remove tasks from tasks array
 		for (const index of removedTaskIndex) {
+			// decrement totalTaskCount if task is not done
+			if (!tasks[username].todos[index].done) {
+				taskListMemory.totalTaskCount--;
+			}
+
 			tasks[username].todos.splice(index, 1);
-			taskListMemory.totalTaskCount--;
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
@@ -2188,6 +2192,10 @@ function renderTaskListToDOM() {
 		if (taskListMemory.doneTaskCount > completedTasksCount) {
 			completedTasksCount = taskListMemory.doneTaskCount;
 			totalTaskCount = taskListMemory.totalTaskCount;
+		}
+
+		if (totalTaskCount < completedTasksCount) {
+			totalTaskCount = completedTasksCount;
 		}
 
 		document.querySelector(
