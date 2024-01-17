@@ -125,6 +125,10 @@ function importStyles() {
 		);
 	});
 
+	if (!settings.displayTaskCount) {
+		document.querySelector(".task-count").style.display = "none";
+	}
+
 	let currentTitle = 0;
 	// interval the task title
 	setInterval(async () => {
@@ -268,6 +272,7 @@ function addDoneCount(username, value) {
 
 	counts.users[username.toLowerCase()].completeCount += value;
 	counts.totalCompleteCount += value;
+	taskListMemory.doneTaskCount += value;
 
 	// check if user has points
 	if (!counts.users[username.toLowerCase()].points) {
@@ -354,11 +359,7 @@ function addPoints(username, value) {
 		counts.users[username.toLowerCase()].points = 0;
 	}
 
-	console.log(counts.users[username.toLowerCase()].points);
-
 	counts.users[username.toLowerCase()].points += value;
-
-	console.log(counts.users[username.toLowerCase()].points);
 
 	localStorage.setItem(`counts`, JSON.stringify(counts));
 
@@ -688,6 +689,9 @@ function addTask(username, userColor, task) {
 				tasksFailedToAdd.push(t);
 				continue;
 			}
+
+			taskListMemory.totalTaskCount++;
+
 			tasks[username].todos.push({
 				text: t,
 				done: false,
@@ -708,10 +712,115 @@ function addTask(username, userColor, task) {
 				tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
 			},
 		};
+	} else {
+		tasks[username].todos.push({ text: task, done: false, focus: false });
+		taskListMemory.totalTaskCount++;
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		if (!scrolling) {
+			renderTaskListToDOM();
+		}
+
+		return {
+			status: 200,
+			body: {
+				task: task,
+				tasksFailedToAdd: "",
+			},
+		};
+	}
+}
+
+/**
+ * This function adds a new task to a user's task list and sets it as the currently focused task.
+ *
+ * @param {string} username - The name of the user for whom the task is being added.
+ * @param {string} userColor - The color associated with the user.
+ * @param {string} task - The text description of the task to be added.
+ *
+ * @returns {Object} - An object containing the status of the operation and a body with either the task added or an error message.
+ */
+function nowTask(username, userColor, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username]) {
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
 	}
 
-	tasks[username].todos.push({ text: task, done: false, focus: false });
+	if (
+		incompleteTasksCount(username) >= settings.limit &&
+		settings.enableLimit
+	) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has reached the limit of ${settings.limit} tasks`,
+				error: responses.noTaskAdded,
+			},
+		};
+	}
+
+	if (
+		tasks[username].todos.find(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		)
+	) {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} already has this task`,
+				error: responses.duplicateTask,
+			},
+		};
+	}
+
+	// if task is whitespace or empty
+	if (!task || !task.trim()) {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// if task is "all", return error
+	if (task.toLowerCase() === "all") {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} all is a reserved keyword`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// if task has commas
+	if (taskSeparator.some((char) => task.includes(char))) {
+		// return an error because you can't add multiple tasks with now
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} cannot add multiple tasks with now`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	tasks[username].todos.push({ text: task, done: false, focus: true });
+	taskListMemory.totalTaskCount++;
+
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
@@ -720,7 +829,108 @@ function addTask(username, userColor, task) {
 		status: 200,
 		body: {
 			task: task,
-			tasksFailedToAdd: "",
+		},
+	};
+}
+
+/**
+ * This function adds a new task to a user's task list and sets it as the currently focused task.
+ *
+ * @param {string} username - The name of the user for whom the task is being added.
+ * @param {string} userColor - The color associated with the user.
+ * @param {string} task - The text description of the task to be added.
+ *
+ * @returns {Object} - An object containing the status of the operation and a body with either the task added or an error message.
+ */
+function nowTask(username, userColor, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username]) {
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
+	}
+
+	if (
+		incompleteTasksCount(username) >= settings.limit &&
+		settings.enableLimit
+	) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has reached the limit of ${settings.limit} tasks`,
+				error: responses.noTaskAdded,
+			},
+		};
+	}
+
+	if (
+		tasks[username].todos.find(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		)
+	) {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} already has this task`,
+				error: responses.duplicateTask,
+			},
+		};
+	}
+
+	// if task is whitespace or empty
+	if (!task || !task.trim()) {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// if task is "all", return error
+	if (task.toLowerCase() === "all") {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} all is a reserved keyword`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// if task has commas
+	if (taskSeparator.some((char) => task.includes(char))) {
+		// return an error because you can't add multiple tasks with now
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} cannot add multiple tasks with now`,
+				error: responses.noTaskContent,
+			},
+		};
+	}
+
+	// set all tasks to unfocused
+	for (const task of tasks[username].todos) {
+		task.focus = false;
+	}
+
+	tasks[username].todos.push({ text: task, done: false, focus: true });
+	taskListMemory.totalTaskCount++;
+
+	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
+	return {
+		status: 200,
+		body: {
+			task: task,
 		},
 	};
 }
@@ -936,9 +1146,7 @@ function removeTask(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
+					index = tasks[username].todos.findIndex((t) => !t.done);
 					tasksRemoved.push(tasks[username].todos[index].text);
 					removedTaskIndex.push(index);
 				} else {
@@ -975,6 +1183,7 @@ function removeTask(username, task) {
 		// remove tasks from tasks array
 		for (const index of removedTaskIndex) {
 			tasks[username].todos.splice(index, 1);
+			taskListMemory.totalTaskCount--;
 		}
 
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
@@ -1022,6 +1231,7 @@ function removeTask(username, task) {
 		task = tasks[username].todos[index].text;
 
 		tasks[username].todos.splice(index, 1);
+		taskListMemory.totalTaskCount--;
 		localStorage.setItem(`tasks`, JSON.stringify(tasks));
 		renderTaskListToDOM();
 		return {
@@ -1029,6 +1239,134 @@ function removeTask(username, task) {
 			body: {
 				removedTasks: task,
 				failedTasks: "",
+			},
+		};
+	}
+}
+
+/**
+ * This function marks the current task of a user as complete and adds a new task to the user's task list.
+ *
+ * @param {string} username - The name of the user who is completing the current task and adding a new one.
+ * @param {string} task - The text description of the new task to be added.
+ *
+ * @returns {Object} - An object containing the status of the operation and a body with either the old and new task or an error message.
+ */
+function nextTask(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	if (task === "") {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.nextNoContent,
+			},
+		};
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length !== 1) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has more than one incomplete task`,
+				error: responses.taskNextFailed,
+			},
+		};
+	} else {
+		// mark the incomplete task as complete, then add a new task "task"
+
+		// find index of incomplete task
+		let index = tasks[username].todos.findIndex((t) => !t.done);
+
+		let oldTask = tasks[username].todos[index].text;
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+		addDoneCount(username, 1);
+
+		// add new task
+		tasks[username].todos.push({ text: task, done: false, focus: false });
+		taskListMemory.totalTaskCount++;
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: task,
+			},
+		};
+	}
+}
+
+function nextTask(username, task) {
+	const tasks = JSON.parse(localStorage.tasks);
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: responses.noTask,
+			},
+		};
+	}
+
+	if (task === "") {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} empty task`,
+				error: responses.nextNoContent,
+			},
+		};
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length !== 1) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has more than one incomplete task`,
+				error: responses.taskNextFailed,
+			},
+		};
+	} else {
+		// mark the incomplete task as complete, then add a new task "task"
+
+		// find index of incomplete task
+		let index = tasks[username].todos.findIndex((t) => !t.done);
+
+		let oldTask = tasks[username].todos[index].text;
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+		addDoneCount(username, 1);
+
+		// add new task
+		tasks[username].todos.push({ text: task, done: false, focus: false });
+		taskListMemory.totalTaskCount++;
+
+		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: task,
 			},
 		};
 	}
@@ -1151,12 +1489,8 @@ function markTaskDone(username, task) {
 				if (isInt(t)) {
 					index = parseInt(t) - 1; // ACTUAL INDEX
 				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
+					index = tasks[username].todos.findIndex((t) => !t.done);
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
 					addDoneCount(username, 1);
 				} else {
@@ -1171,9 +1505,7 @@ function markTaskDone(username, task) {
 					tasksFailedToComplete.push(t);
 					continue;
 				} else {
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
+					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
 					addDoneCount(username, 1);
 				}
@@ -1226,8 +1558,7 @@ function markTaskDone(username, task) {
 			} else if (focusedTask) {
 				index = tasks[username].todos.findIndex(
 					(t) =>
-						t.text.toLowerCase() ===
-						focusedTask.text.toLowerCase()
+						t.text.toLowerCase() === focusedTask.text.toLowerCase()
 				);
 			} else if (settings.automaticDoneIndex) {
 				// index is the first incomplete task
@@ -1379,9 +1710,7 @@ function markTaskUndone(username, task) {
 
 					continue;
 				} else {
-					tasksMarkedUndone.push(
-						tasks[username].todos[index].text
-					);
+					tasksMarkedUndone.push(tasks[username].todos[index].text);
 				}
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
@@ -1760,12 +2089,21 @@ function clearAll() {
 	};
 }
 
-// 200: success
-function clearAllExceptStreamer(streamer) {
+/**
+ * Clears all tasks from the local storage except for those belonging to specified streamer usernames.
+ * After clearing, it also clears all done tasks, cancels any ongoing animation and re-renders the task list to the DOM.
+ *
+ * @param {string[]} streamerUsernames - An array of streamer usernames whose tasks should not be cleared.
+ * @returns {Object} An object with a status property indicating the success of the operation (200 for success).
+ */
+function clearAllExceptStreamer(streamerUsername) {
 	// clear all tasks except for broadcasters
 	const tasks = JSON.parse(localStorage.tasks);
+
+	// streamerusernames lowercased
+
 	for (const user in tasks) {
-		if (user.toLowerCase() !== streamer.toLowerCase()) {
+		if (user.toLowerCase() !== streamerUsername.toLowerCase()) {
 			tasks[user].todos = [];
 		}
 	}
@@ -1783,15 +2121,22 @@ function clearAllExceptStreamer(streamer) {
 	};
 }
 
+const taskListMemory = {
+	doneTaskCount: 0,
+	totalTaskCount: 0,
+};
+
 function renderTaskListToDOM() {
 	const tasks = JSON.parse(localStorage.tasks);
 
 	const taskContainers = document.querySelectorAll(".task-container");
+
 	taskContainers.forEach((taskList) => {
 		taskList.innerHTML = "";
 
 		let totalTaskCount = 0;
 		let completedTasksCount = 0;
+
 		for (const user in tasks) {
 			const userTasks = tasks[user];
 			if (userTasks.todos.length === 0) {
@@ -1840,9 +2185,17 @@ function renderTaskListToDOM() {
 			}
 		}
 
+		if (taskListMemory.doneTaskCount > completedTasksCount) {
+			completedTasksCount = taskListMemory.doneTaskCount;
+			totalTaskCount = taskListMemory.totalTaskCount;
+		}
+
 		document.querySelector(
 			".task-count"
 		).innerText = `${completedTasksCount}/${totalTaskCount}`;
+
+		taskListMemory.doneTaskCount = completedTasksCount;
+		taskListMemory.totalTaskCount = totalTaskCount;
 	});
 	localStorage.setItem(`tasks`, JSON.stringify(tasks));
 	checkToAnimate();

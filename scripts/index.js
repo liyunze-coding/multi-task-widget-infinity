@@ -18,9 +18,7 @@ function isStreamer(flags) {
 	return flags.broadcaster;
 }
 
-ComfyJS.onCommand = (user, command, message, flags, extra) => {
-	command = `!${command.toLowerCase()}`;
-
+function processCommand(user, command, message, flags, extra) {
 	params = {
 		user: user,
 		message: message,
@@ -131,6 +129,35 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 
 		respond(unfinishedResponse, params);
+	} else if (commands.nextTaskCommands.includes(command)) {
+		let nextRequest = nextTask(user, message);
+
+		if (nextRequest.status !== 200) {
+			respond(nextRequest.body.error, params);
+			return;
+		}
+
+		// task next
+		let nextResponse = responses.taskNext;
+
+		params.oldTask = nextRequest.body.oldTask;
+		params.newTask = nextRequest.body.newTask;
+
+		respond(nextResponse, params);
+	} else if (commands.nowTaskCommands.includes(command)) {
+		let nowRequest = nowTask(user, extra.userColor, message);
+
+		if (nowRequest.status !== 200) {
+			respond(nowRequest.body.error, params);
+			return;
+		}
+
+		// task now
+		let nowResponse = responses.nowTask;
+
+		params.task = nowRequest.body.task;
+
+		respond(nowResponse, params);
 	} else if (commands.focusTaskCommands.includes(command)) {
 		let focusRequest = focusTask(user, message);
 
@@ -166,7 +193,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 				return;
 			}
 
-			return ComfyJS.Say(checkRequest.body.reply);
+			return respond(checkRequest.body.reply, params);
 		} else {
 			let mentioned = message.replace("@", "");
 			let checkRequest = checkTasks(mentioned);
@@ -177,7 +204,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 
 				return;
 			}
-			return ComfyJS.Say(checkRequest.body.reply);
+			return respond(checkRequest.body.reply, params);
 		}
 	} else if (commands.adminDeleteCommands.includes(command)) {
 		if (!isMod(flags)) {
@@ -224,7 +251,7 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	} else if (commands.clearMyDoneCommands.includes(command)) {
 		let clearOwnDoneResponse = clearOwnDoneTasks(user);
 
-		if (clearOwnDoneResponse.status === 0) {
+		if (clearOwnDoneResponse.status !== 200) {
 			// no tasks
 			respond(responses.noTask, params);
 			return;
@@ -491,6 +518,12 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 	} else {
 		// command not found
 	}
+}
+
+ComfyJS.onCommand = (user, command, message, flags, extra) => {
+	command = `!${command.toLowerCase()}`;
+
+	processCommand(user, command, message, flags, extra);
 };
 
 ComfyJS.Init(auth.username, `oauth:${auth.oauth}`, [auth.channel]);
