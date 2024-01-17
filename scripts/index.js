@@ -81,7 +81,7 @@ function onData(data) {
 			userColor: "pink",
 		};
 
-		procressCommand(
+		processCommand(
 			user,
 			command,
 			message,
@@ -123,7 +123,7 @@ function onData(data) {
 			userColor: payload.message.color,
 		};
 
-		procressCommand(
+		processCommand(
 			user,
 			command,
 			message,
@@ -150,7 +150,7 @@ function isStreamer(flags) {
 	return flags.broadcaster;
 }
 
-function procressCommand(user, command, message, flags, source, extra) {
+function processCommand(user, command, message, flags, source, extra) {
 	params = {
 		user: user,
 		message: message,
@@ -277,6 +277,20 @@ function procressCommand(user, command, message, flags, source, extra) {
 		params.newTask = nextRequest.body.newTask;
 
 		respond(nextResponse, params);
+	} else if (commands.nowTaskCommands.includes(command)) {
+		let nowRequest = nowTask(user, extra.userColor, message);
+
+		if (nowRequest.status !== 200) {
+			respond(nowRequest.body.error, params);
+			return;
+		}
+
+		// task now
+		let nowResponse = responses.nowTask;
+
+		params.task = nowRequest.body.task;
+
+		respond(nowResponse, params);
 	} else if (commands.focusTaskCommands.includes(command)) {
 		let focusRequest = focusTask(user, message);
 
@@ -370,7 +384,7 @@ function procressCommand(user, command, message, flags, source, extra) {
 	} else if (commands.clearMyDoneCommands.includes(command)) {
 		let clearOwnDoneResponse = clearOwnDoneTasks(user);
 
-		if (clearOwnDoneResponse.status === 0) {
+		if (clearOwnDoneResponse.status !== 200) {
 			// no tasks
 			respond(responses.noTask, params);
 			return;
