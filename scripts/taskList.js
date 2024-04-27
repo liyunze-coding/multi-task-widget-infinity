@@ -966,7 +966,7 @@ function focusTask(username, task) {
 		};
 	}
 
-	if (task.includes(",")) {
+	if (taskSeparator.some((separator) => task.includes(separator))) {
 		return {
 			status: 1,
 			body: {
@@ -1025,6 +1025,17 @@ function focusTask(username, task) {
 			body: {
 				"error message": `@${username} task is already focused`,
 				error: responses.alreadyFocusedTask,
+			},
+		};
+	}
+
+	// if task is already completed, return 2
+	if (tasks[username].todos[index].done) {
+		return {
+			status: 2,
+			body: {
+				"error message": `@${username} task is already completed`,
+				error: responses.specifyFocusTask,
 			},
 		};
 	}
