@@ -3,14 +3,24 @@ const commands = configs.commands;
 let params = {};
 
 const client = new StreamerbotClient({
-	host: "127.0.0.1",
 	port: 6968,
-	subscribe: {
-		YouTube: ["Message"],
-		Twitch: ["ChatMessage"],
-	},
-	onData: onData,
 });
+
+client.on("Twitch.ChatMessage", onData);
+client.on("YouTube.Message", onData);
+client.on("General.Custom", onCustom);
+
+function onCustom(data) {
+	console.log(data);
+	if (data.data.custom && data.data.custom.toLowerCase() === "backup") {
+		console.log("Backup received");
+		backupStorage();
+	} else if (data.data.backupFileContent) {
+		console.log("File received");
+		console.log(data.data.backupFileContent);
+		loadDataToDB(data.data.backupFileContent);
+	}
+}
 
 async function respond(template, params = {}) {
 	Object.keys(params).forEach((key) => {
@@ -27,7 +37,7 @@ async function respond(template, params = {}) {
 			}
 		);
 
-		console.log(streamerYTBotResponse);
+		// console.log(streamerYTBotResponse);
 	} else {
 		const streamerTwitchBotResponse = await client.doAction(
 			"8ff809be-e269-4f06-9528-021ef58df436",
@@ -36,7 +46,7 @@ async function respond(template, params = {}) {
 			}
 		);
 
-		console.log(streamerTwitchBotResponse);
+		// console.log(streamerTwitchBotResponse);
 	}
 }
 
@@ -81,14 +91,7 @@ function onData(data) {
 			userColor: "pink",
 		};
 
-		processCommand(
-			user,
-			command,
-			message,
-			flags,
-			data.event.source,
-			extra
-		);
+		processCommand(user, command, message, flags, data.event.source, extra);
 	} else if (
 		data.event.source === "Twitch" &&
 		data.event.type === "ChatMessage"
@@ -123,14 +126,7 @@ function onData(data) {
 			userColor: payload.message.color,
 		};
 
-		processCommand(
-			user,
-			command,
-			message,
-			flags,
-			data.event.source,
-			extra
-		);
+		processCommand(user, command, message, flags, data.event.source, extra);
 	}
 }
 
@@ -150,7 +146,7 @@ function isStreamer(flags) {
 	return flags.broadcaster;
 }
 
-function processCommand(user, command, message, flags, source, extra) {
+async function processCommand(user, command, message, flags, source, extra) {
 	params = {
 		user: user,
 		message: message,
@@ -159,14 +155,14 @@ function processCommand(user, command, message, flags, source, extra) {
 	};
 
 	if (commands.addTaskCommands.includes(command)) {
-		let addRequest = addTask(user, extra.userColor, message);
+		let addRequest = await addTask(user, extra.userColor, message);
 
 		if (addRequest.status !== 200) {
 			respond(addRequest.body.error, params);
 			return;
 		}
 
-		let addedResponse = responses.taskAdded;
+		let addedResponse = getResponse("taskAdded");
 		params.task = addRequest.body.task;
 
 		if (addRequest.body.tasksFailedToAdd !== "") {
@@ -175,7 +171,7 @@ function processCommand(user, command, message, flags, source, extra) {
 
 		respond(addedResponse, params);
 	} else if (commands.editTaskCommands.includes(command)) {
-		let editRequest = editTask(user, message);
+		let editRequest = await editTask(user, message);
 
 		if (editRequest.status !== 200) {
 			respond(editRequest.body.error, params);
@@ -188,15 +184,15 @@ function processCommand(user, command, message, flags, source, extra) {
 		params.task = newTask;
 		params.originalTask = originalTask;
 
-		respond(responses.taskEdited, params);
+		respond(getResponse("taskEdited"), params);
 	} else if (commands.deleteTaskCommands.includes(command)) {
-		let removeRequest = removeTask(user, message);
+		let removeRequest = await removeTask(user, message);
 
 		if (removeRequest.status !== 200) {
 			respond(removeRequest.body.error, params);
 			return;
 		}
-		let deletedResponse = responses.taskDeleted;
+		let deletedResponse = getResponse("taskDeleted");
 
 		let removedTasks = removeRequest.body.removedTasks;
 		let failedTasks = removeRequest.body.failedTasks;
@@ -210,31 +206,31 @@ function processCommand(user, command, message, flags, source, extra) {
 		respond(deletedResponse, params);
 	} else if (commands.finishTaskCommands.includes(command)) {
 		if (message === "all") {
-			let finishAllRequest = markAllTasksAsDone(user);
+			let finishAllRequest = await markAllTasksAsDone(user);
 
 			if (finishAllRequest.status !== 200) {
 				respond(finishAllRequest.body.error, params);
 				return;
 			}
 
-			let finishedAllResponse = responses.allTasksFinished;
-			params.doneCount = completedTasksCount(user);
+			let finishedAllResponse = getResponse("allTasksFinished");
+			params.doneCount = await completedTasksCount(user);
 
 			respond(finishedAllResponse, params);
 			return;
 		}
 
-		let finishRequest = markTaskDone(user, message);
+		let finishRequest = await markTaskDone(user, message);
 
 		if (finishRequest.status !== 200) {
 			respond(finishRequest.body.error, params);
 			return;
 		}
 
-		let finishedResponse = responses.taskFinished;
+		let finishedResponse = getResponse("taskFinished");
 
 		params.task = finishRequest.body.markedTasks;
-		params.doneCount = completedTasksCount(user);
+		params.doneCount = await completedTasksCount(user);
 		params.pointCount =
 			finishRequest.body.markedTasksCount *
 			configs.settings.pointsPerTask;
@@ -245,7 +241,7 @@ function processCommand(user, command, message, flags, source, extra) {
 
 		respond(finishedResponse, params);
 	} else if (commands.unfinishTaskCommands.includes(command)) {
-		let unfinishRequest = markTaskUndone(user, message);
+		let unfinishRequest = await markTaskUndone(user, message);
 
 		if (unfinishRequest.status !== 200) {
 			respond(unfinishRequest.body.error, params);
@@ -253,7 +249,7 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		// task unfinished
-		let unfinishedResponse = responses.taskUnfinished;
+		let unfinishedResponse = getResponse("taskUnfinished");
 
 		params.task = unfinishRequest.body.markedTasks;
 
@@ -263,7 +259,7 @@ function processCommand(user, command, message, flags, source, extra) {
 
 		respond(unfinishedResponse, params);
 	} else if (commands.nextTaskCommands.includes(command)) {
-		let nextRequest = nextTask(user, message);
+		let nextRequest = await nextTask(user, message);
 
 		if (nextRequest.status !== 200) {
 			respond(nextRequest.body.error, params);
@@ -271,14 +267,14 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		// task next
-		let nextResponse = responses.taskNext;
+		let nextResponse = getResponse("taskNext");
 
 		params.oldTask = nextRequest.body.oldTask;
 		params.newTask = nextRequest.body.newTask;
 
 		respond(nextResponse, params);
 	} else if (commands.nowTaskCommands.includes(command)) {
-		let nowRequest = nowTask(user, extra.userColor, message);
+		let nowRequest = await nowTask(user, extra.userColor, message);
 
 		if (nowRequest.status !== 200) {
 			respond(nowRequest.body.error, params);
@@ -286,13 +282,13 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		// task now
-		let nowResponse = responses.nowTask;
+		let nowResponse = getResponse("nowTask");
 
 		params.task = nowRequest.body.task;
 
 		respond(nowResponse, params);
 	} else if (commands.focusTaskCommands.includes(command)) {
-		let focusRequest = focusTask(user, message);
+		let focusRequest = await focusTask(user, message);
 
 		if (focusRequest.status !== 200) {
 			respond(focusRequest.body.error, params);
@@ -300,13 +296,13 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		// task focused
-		let focusedResponse = responses.taskFocused;
+		let focusedResponse = getResponse("taskFocused");
 
 		params.task = focusRequest.body.focusedTask;
 
 		respond(focusedResponse, params);
 	} else if (commands.unfocusTaskCommands.includes(command)) {
-		let unfocusRequest = unfocusTask(user);
+		let unfocusRequest = await unfocusTask(user);
 
 		if (unfocusRequest.status !== 200) {
 			respond(unfocusRequest.body.error, params);
@@ -314,12 +310,12 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		// task unfocused
-		let unfocusedResponse = responses.clearFocused;
+		let unfocusedResponse = getResponse("clearFocused");
 
 		respond(unfocusedResponse, params);
 	} else if (commands.checkCommands.includes(command)) {
 		if (message === "") {
-			let checkRequest = checkTasks(user);
+			let checkRequest = await checkTasks(user);
 			if (checkRequest.status !== 200) {
 				// no tasks
 				respond(checkRequest.body.error, params);
@@ -329,7 +325,7 @@ function processCommand(user, command, message, flags, source, extra) {
 			return respond(checkRequest.body.reply, params);
 		} else {
 			let mentioned = message.replace("@", "");
-			let checkRequest = checkTasks(mentioned);
+			let checkRequest = await checkTasks(mentioned);
 
 			if (checkRequest.status !== 200) {
 				// no tasks
@@ -341,74 +337,76 @@ function processCommand(user, command, message, flags, source, extra) {
 		}
 	} else if (commands.adminDeleteCommands.includes(command)) {
 		if (!isMod(flags)) {
-			respond(responses.notMod, params);
+			respond(getResponse("notMod"), params);
 			return;
 		}
 		let mentioned = message.replace("@", "");
 
 		if (mentioned === "") {
-			respond(responses.specifyUser, params);
+			respond(getResponse("specifyUser"), params);
 			return;
 		}
 
-		let clearUserTaskResponse = clearUserTasks(mentioned);
+		let clearUserTaskResponse = await clearUserTasks(mentioned);
 
 		params.mentioned = mentioned;
 
 		if (clearUserTaskResponse.status === 0) {
 			// no tasks
-			respond(responses.noTaskA, params);
+			respond(getResponse("noTaskA"), params);
 			return;
 		}
 
-		respond(responses.adminDeleteTasks, params);
+		respond(getResponse("adminDeleteTasks"), params);
 		return;
 	} else if (commands.adminClearDoneCommands.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
 		clearAllDoneTasks();
-		respond(responses.clearedDone, params);
+		respond(getResponse("clearedDone"), params);
 		return;
 	} else if (commands.adminClearAllCommands.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
 		clearAll();
-		respond(responses.clearedAll, params);
+		respond(getResponse("clearedAll"), params);
 		return;
 	} else if (commands.clearMyDoneCommands.includes(command)) {
-		let clearOwnDoneResponse = clearOwnDoneTasks(user);
+		let clearOwnDoneResponse = await clearOwnDoneTasks(user);
 
 		if (clearOwnDoneResponse.status !== 200) {
 			// no tasks
-			respond(responses.noTask, params);
+			respond(getResponse("noTask"), params);
 			return;
 		}
 
-		respond(responses.clearedMyDone, params);
+		respond(getResponse("clearedMyDone"), params);
 	} else if (commands.adminClearNotStreamerCommands.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
+		await clearMemory();
 
-		clearAllExceptStreamer(configs.StreamerUsernames);
-		respond(responses.clearTasksExceptBroadcaster, params);
+		await clearAllExceptStreamer(configs.StreamerUsernames);
+		respond(getResponse("clearTasksExceptBroadcaster"), params);
 	} else if (commands.adminClearTasksCommands.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
+		await clearMemory();
 
-		clearAllTasks();
-		respond(responses.clearedTasks, params);
+		await clearAllTasks();
+		respond(getResponse("clearedTasks"), params);
 	} else if (commands.listCommands.includes(command)) {
-		let listTaskResponse = listTasks(user);
+		let listTaskResponse = await listTasks(user);
 
 		if (listTaskResponse.status !== 200) {
 			// no tasks
@@ -419,38 +417,38 @@ function processCommand(user, command, message, flags, source, extra) {
 		respond(listTaskResponse.body.reply, params);
 	} else if (commands.checkCountCommands.includes(command)) {
 		if (message === "") {
-			let count = completedTasksCount(user);
+			let count = await completedTasksCount(user);
 
 			params.doneCount = count;
 
-			return respond(responses.checkYourCount, params);
+			return respond(getResponse("checkYourCount"), params);
 		} else {
 			let mentioned = message.replace("@", "");
-			let count = completedTasksCount(mentioned);
+			let count = await completedTasksCount(mentioned);
 
 			params.doneCount = count;
 			params.mentioned = mentioned;
 
-			return respond(responses.checkUserCount, params);
+			return respond(getResponse("checkUserCount"), params);
 		}
 	} else if (commands.checkAllCountCommands.includes(command)) {
 		let count = getBoardTotalTaskCount();
 
 		if (count === 0) {
-			respond(responses.noCountAll, params);
+			respond(getResponse("noCountAll"), params);
 			return;
 		}
 
 		params.doneCount = count;
 
-		respond(responses.checkAllCount, params);
+		respond(getResponse("checkAllCount"), params);
 	} else if (commands.checkMyPointsCommands.includes(command)) {
 		if (message === "") {
 			let points = getUserPoints(user);
 
 			params.pointCount = points;
 
-			return respond(responses.checkMyPoints, params);
+			return respond(getResponse("checkMyPoints"), params);
 		} else {
 			let mentioned = message.replace("@", "");
 			let points = getUserPoints(mentioned);
@@ -458,148 +456,148 @@ function processCommand(user, command, message, flags, source, extra) {
 			params.pointCount = points;
 			params.mentioned = mentioned;
 
-			return respond(responses.checkUserPoints, params);
+			return respond(getResponse("checkUserPoints"), params);
 		}
 	} else if (commands.syncCountPointsCommands.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
-		syncPointsToCount();
-		respond(responses.syncCountPoints, params);
+		await syncPointsToCount();
+		respond(getResponse("syncCountPoints"), params);
 	} else if (commands.addPointsCommands.includes(command)) {
 		// !addpoints @user 100
 
 		if (!isMod(flags)) {
-			respond(responses.notMod, params);
+			respond(getResponse("notMod"), params);
 			return;
 		}
 
 		let mentioned = message.split(" ")[0].replace("@", "");
 
 		if (mentioned === "") {
-			respond(responses.specifyUser, params);
+			respond(getResponse("specifyUser"), params);
 			return;
 		}
 
 		let points = message.split(" ")[1];
 
 		if (points === undefined) {
-			respond(responses.specifyPoints, params);
+			respond(getResponse("specifyPoints"), params);
 			return;
 		}
 
 		if (!/^\d+$/.test(points)) {
-			respond(responses.invalidNumber, params);
+			respond(getResponse("invalidNumber"), params);
 			return;
 		}
 
 		points = parseInt(points);
 
-		addPoints(mentioned, points);
+		await addPoints(mentioned, points);
 
 		params.mentioned = mentioned;
 		params.pointCount = points;
 
-		respond(responses.addPoints, params);
+		respond(getResponse("addPoints"), params);
 	} else if (commands.reducePointsCommands.includes(command)) {
 		if (!isMod(flags)) {
-			respond(responses.notMod, params);
+			respond(getResponse("notMod"), params);
 			return;
 		}
 
 		let mentioned = message.split(" ")[0].replace("@", "");
 
 		if (mentioned === "") {
-			respond(responses.specifyUser, params);
+			respond(getResponse("specifyUser"), params);
 			return;
 		}
 
 		let points = message.split(" ")[1];
 
-		if (points === undefined) {
-			respond(responses.specifyPoints, params);
+		if (points == undefined) {
+			respond(getResponse("specifyPoints"), params);
 			return;
 		}
 
 		if (!/^\d+$/.test(points)) {
-			respond(responses.invalidNumber, params);
+			respond(getResponse("invalidNumber"), params);
 			return;
 		}
 
-		reducePoints(mentioned, points);
+		await reducePoints(mentioned, points);
 
 		params.mentioned = mentioned;
 		params.pointCount = points;
 
-		respond(responses.reducePoints, params);
+		respond(getResponse("reducePoints"), params);
 	} else if (commands.setUserPointsCommands.includes(command)) {
 		if (!isMod(flags)) {
-			respond(responses.notMod, params);
+			respond(getResponse("notMod"), params);
 			return;
 		}
 
 		let mentioned = message.split(" ")[0].replace("@", "");
 
 		if (mentioned === "") {
-			respond(responses.specifyUser, params);
+			respond(getResponse("specifyUser"), params);
 			return;
 		}
 
 		let points = message.split(" ")[1];
 
 		if (points === undefined) {
-			respond(responses.specifyPoints, params);
+			respond(getResponse("specifyPoints"), params);
 			return;
 		}
 
 		if (!/^\d+$/.test(points)) {
-			respond(responses.invalidNumber, params);
+			respond(getResponse("invalidNumber"), params);
 			return;
 		}
 
 		points = parseInt(points);
 
-		setUserPoints(mentioned, points);
+		await setUserPoints(mentioned, points);
 
 		params.mentioned = mentioned;
 		params.pointCount = points;
 
-		respond(responses.setUserPoints, params);
+		respond(getResponse("setUserPoints"), params);
 	} else if (commands.setUserTaskCountCommands.includes(commands)) {
 		if (!isMod(flags)) {
-			respond(responses.notMod, params);
+			respond(getResponse("notMod"), params);
 			return;
 		}
 
 		let mentioned = message.split(" ")[0].replace("@", "");
 
 		if (mentioned === "") {
-			respond(responses.specifyUser, params);
+			respond(getResponse("specifyUser"), params);
 			return;
 		}
 
 		let count = message.split(" ")[1];
 
 		if (count === undefined) {
-			respond(responses.specifyCount, params);
+			respond(getResponse("specifyCount"), params);
 			return;
 		}
 
 		if (!/^\d+$/.test(count)) {
-			respond(responses.invalidNumber, params);
+			respond(getResponse("invalidNumber"), params);
 			return;
 		}
 
 		points = parseInt(points);
 
-		setUserTaskCount(mentioned, count);
+		await setUserTaskCount(mentioned, count);
 
 		params.mentioned = mentioned;
 		params.pointCount = count;
 
-		respond(responses.setUserTaskCount, params);
+		respond(getResponse("setUserTaskCount"), params);
 	} else if (commands.leaderboardCommands.includes(command)) {
 		let leaderboardResponse = leaderboardTaskCount(5);
 
@@ -613,43 +611,75 @@ function processCommand(user, command, message, flags, source, extra) {
 		respond(leaderboard, params);
 	} else if (commands.adminSetBoardCount.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
 		// check if message is a number using regex
 		if (!/^\d+$/.test(message)) {
-			respond(responses.invalidNumber, params);
+			respond(getResponse("invalidNumber"), params);
 			return;
 		}
 
 		params.count = message;
 
-		setTotalCompleteCount(message);
+		await setTotalCompleteCount(message);
 
-		respond(responses.setBoardCount, params);
+		respond(getResponse("setBoardCount"), params);
 	} else if (commands.adminResetBoardCount.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
-		resetBoardCount();
-		respond(responses.clearedBoardCount, params);
+		await resetBoardCount();
+		respond(getResponse("clearedBoardCount"), params);
 	} else if (commands.adminResetUsersCount.includes(command)) {
 		if (!isStreamer(flags)) {
-			respond(responses.notStreamer, params);
+			respond(getResponse("notStreamer"), params);
 			return;
 		}
 
-		resetUsersCount();
-		respond(responses.clearedUsersCount, params);
+		await resetUsersCount();
+		respond(getResponse("clearedUsersCount"), params);
 	} else if (commands.helpCommands.includes(command)) {
 		if (source.toLowerCase() === "youtube") {
-			respond(responses.YTHelp, params);
+			respond(getResponse("YTHelp"), params);
 		} else {
-			respond(responses.twitchHelp, params);
+			respond(getResponse("twitchHelp"), params);
 		}
+	} else if (["!transferdata"].includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+
+		await transferLocalStorageToIndexedDB();
+	} else if (commands.adminBackupCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+		await backupStorage();
+
+		respond(getResponse("backupStorage"), params);
+	} else if (commands.adminLoadBackupCommands.includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+		await loadBackup(message);
+
+		respond(getResponse("loadBackup"), params);
+	} else if (command === "!clearlocalstorage") {
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+
+		clearLocalStorage();
+
+		respond(getResponse("clearLocalStorage"), params);
 	} else if (commands.additionalCommands[command]) {
 		respond(commands.additionalCommands[command], params);
 	} else {

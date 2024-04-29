@@ -17,10 +17,201 @@ DB structure:
 const settings = configs.settings;
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
-const responses = configs.responses;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = configs.settings.taskSeparator;
+
+const DBHandler = {
+	db: null,
+	open: function () {
+		return new Promise((resolve, reject) => {
+			let request = indexedDB.open("tasksDB", 1);
+
+			request.onupgradeneeded = function (e) {
+				let db = e.target.result;
+				if (!db.objectStoreNames.contains("tasks")) {
+					db.createObjectStore("tasks", { autoIncrement: true });
+				}
+			};
+
+			request.onsuccess = function (e) {
+				DBHandler.db = e.target.result;
+				resolve();
+			};
+
+			request.onerror = function (e) {
+				console.log("Error opening db", e);
+				reject(e);
+			};
+		});
+	},
+	get: function (key) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readonly");
+			let store = transaction.objectStore("tasks");
+			let request = store.get(key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error getting item", e);
+			};
+		});
+	},
+	set: function (key, value) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.put(value, key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error setting item", e);
+			};
+		});
+	},
+	remove: function (key) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.delete(key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error removing item", e);
+			};
+		});
+	},
+	clear: function () {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.clear();
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error clearing store", e);
+			};
+		});
+	},
+	backup: function (data) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.add(data);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error backing up data", e);
+			};
+		});
+	},
+};
+
+async function transferLocalStorageToIndexedDB() {
+	// Open the database
+	await DBHandler.open();
+
+	// Get all keys in localStorage
+	let keys = Object.keys(localStorage);
+
+	// For each key, get the value from localStorage, parse it as JSON, and store it in IndexedDB
+	for (let key of keys) {
+		let value = JSON.parse(localStorage.getItem(key));
+		await DBHandler.set(key, value);
+	}
+
+	console.log("Transfer complete");
+}
+
+function clearLocalStorage() {
+	localStorage.removeItem("tasks");
+	localStorage.removeItem("counts");
+}
+
+async function loadDataToDB(data) {
+	await DBHandler.clear();
+
+	console.log(data);
+	// Check if data[0] or data[1] has "users" property
+	if (data[0].users) {
+		await DBHandler.set("counts", data[0]);
+		await DBHandler.set("tasks", data[1]);
+	} else {
+		await DBHandler.set("counts", data[1]);
+		await DBHandler.set("tasks", data[0]);
+	}
+	await renderTaskListToDOM();
+}
+
+async function backupStorage() {
+	// parse timestamp to year-month-day-hour-minute
+	let date = new Date();
+	let year = date.getFullYear();
+	let month = date.getMonth() + 1;
+	let day = date.getDate();
+	let hour = date.getHours();
+	let minute = date.getMinutes();
+
+	// create a string with the date and time
+	let dateString = `${year}-${month}-${day}-${hour}-${minute}`;
+
+	// open a connection to the IndexedDB database
+	let dbRequest = indexedDB.open("tasksDB");
+	let db;
+
+	dbRequest.onsuccess = function (event) {
+		db = event.target.result;
+
+		// create a transaction
+		let transaction = db.transaction(["tasks"], "readonly");
+
+		// get the data from the object store
+		let objectStore = transaction.objectStore("tasks");
+		let request = objectStore.getAll();
+
+		request.onsuccess = async function (event) {
+			// convert the data to JSON
+			let backup = JSON.stringify(request.result);
+			// console.log(request.result);
+
+			const backupResponse = await client.doAction(
+				"8a19c6f9-419f-4486-a4e8-e222799cfd9d",
+				{
+					LOCALSTORAGE: backup,
+					TIMESTAMP: dateString,
+				}
+			);
+
+			console.log(backupResponse);
+		};
+	};
+}
+
+async function loadBackup(filename) {
+	// console.log(filename);
+	const loadBackupResponse = await client.doAction(
+		"ad1f5ad6-e604-4f21-bace-c6d8953e1619",
+		{
+			FILENAME: filename,
+		}
+	);
+	// console.log(loadBackupResponse);
+}
 
 function loadGoogleFont(font) {
 	WebFont.load({
@@ -74,6 +265,21 @@ function hexToRgb(hex) {
 	b = +b;
 
 	return `${r}, ${g}, ${b}`;
+}
+
+/**
+ * Returns the current month and year.
+ *
+ * @returns {Object} An object containing the current month as a number and the current year as a number.
+ */
+function getMonthYear() {
+	let date = new Date();
+	let month = date.toLocaleString("default", { month: "numeric" });
+	let year = date.getFullYear();
+	return {
+		month: month,
+		year: year,
+	};
 }
 
 /**
@@ -159,22 +365,22 @@ function importStyles() {
 }
 
 /**
- * Resets the entire localstorage
+ * Resets the entire DB
  */
-function resetDB() {
-	localStorage.clear();
+async function resetDB() {
+	await DBHandler.clear();
 	setupDB();
 }
 
 /**
  * Sets up the local storage database.
  */
-function setupDB() {
-	if (!localStorage.tasks) {
-		localStorage.setItem(`tasks`, "{}");
+async function setupDB() {
+	if (!(await DBHandler.get("tasks"))) {
+		await DBHandler.set("tasks", {});
 	}
-	if (!localStorage.counts) {
-		localStorage.setItem(`counts`, JSON.stringify({ users: {} }));
+	if (!(await DBHandler.get("counts"))) {
+		await DBHandler.set("counts", { users: {} });
 	}
 }
 
@@ -184,8 +390,8 @@ function setupDB() {
  * @param {string} username - The name of the user whose tasks are to be counted.
  * @returns {number} The number of incomplete tasks for the user.
  */
-function incompleteTasksCount(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function incompleteTasksCount(username) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		return 0;
 	}
@@ -198,8 +404,8 @@ function incompleteTasksCount(username) {
  * @param {string} username - The name of the user whose tasks are to be counted.
  * @returns {number} The number of completed tasks for the user.
  */
-function completedTasksCount(username) {
-	const counts = JSON.parse(localStorage.counts);
+async function completedTasksCount(username) {
+	const counts = await DBHandler.get("counts");
 	if (!counts.users[username.toLowerCase()]) {
 		return 0;
 	}
@@ -222,8 +428,8 @@ function getUserTotalTaskCount(username) {
  * @param {string} username - The name of the user whose points are to be calculated.
  * @returns {number} The total points for the user.
  */
-function calculatePoints(username) {
-	const counts = JSON.parse(localStorage.counts);
+async function calculatePoints(username) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		return 0;
@@ -241,8 +447,8 @@ function calculatePoints(username) {
  * @param {string} username - The name of the user.
  * @returns {number} The points of the user. If the user does not exist, returns 0.
  */
-function getUserPoints(username) {
-	const counts = JSON.parse(localStorage.counts);
+async function getUserPoints(username) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		return 0;
@@ -257,8 +463,8 @@ function getUserPoints(username) {
  * @param {string} username - The name of the user whose completed task count is to be incremented.
  * @param {number} value - The value to be added to the completed task count.
  */
-function addDoneCount(username, value) {
-	const counts = JSON.parse(localStorage.counts);
+async function addDoneCount(username, value) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -283,7 +489,7 @@ function addDoneCount(username, value) {
 	counts.users[username.toLowerCase()].points +=
 		value * settings.pointsPerTask;
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 }
 
 /**
@@ -293,8 +499,8 @@ function addDoneCount(username, value) {
  * @param {int} value
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function setUserCompleteCount(username, value) {
-	const counts = JSON.parse(localStorage.counts);
+async function setUserCompleteCount(username, value) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -302,13 +508,9 @@ function setUserCompleteCount(username, value) {
 		};
 	}
 
-	if (!counts.users[username.toLowerCase()].completeCount) {
-		counts.users[username.toLowerCase()].completeCount = 0;
-	}
-
 	counts.users[username.toLowerCase()].completeCount = parseInt(value);
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -324,12 +526,12 @@ function setUserCompleteCount(username, value) {
  * @param {number} value - The new total count of completed tasks.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function setTotalCompleteCount(value) {
-	const counts = JSON.parse(localStorage.counts);
+async function setTotalCompleteCount(value) {
+	const counts = await DBHandler.get("counts");
 
 	counts.totalCompleteCount = parseInt(value);
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -346,8 +548,8 @@ function setTotalCompleteCount(value) {
  * @param {number} value - The number of points to add.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function addPoints(username, value) {
-	const counts = JSON.parse(localStorage.counts);
+async function addPoints(username, value) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -361,7 +563,7 @@ function addPoints(username, value) {
 
 	counts.users[username.toLowerCase()].points += value;
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -378,8 +580,8 @@ function addPoints(username, value) {
  * @param {number} pointsCount - The new points count for the user.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function setUserPoints(username, pointsCount) {
-	const counts = JSON.parse(localStorage.counts);
+async function setUserPoints(username, pointsCount) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -387,13 +589,9 @@ function setUserPoints(username, pointsCount) {
 		};
 	}
 
-	if (!counts.users[username.toLowerCase()].points) {
-		counts.users[username.toLowerCase()].points = 0;
-	}
-
 	counts.users[username.toLowerCase()].points = pointsCount;
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -404,14 +602,14 @@ function setUserPoints(username, pointsCount) {
 }
 
 /**
- * Reduces the points of a specific user in local storage by a specified value.
+ * Reduces a specified number of points from a user's total in local storage.
  *
  * @param {string} username - The name of the user.
- * @param {number} value - The value by which the user's points are to be reduced.
+ * @param {number} value - The number of points to reduce.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function reducePoints(username, value) {
-	const counts = JSON.parse(localStorage.counts);
+async function reducePoints(username, value) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -425,7 +623,7 @@ function reducePoints(username, value) {
 
 	counts.users[username.toLowerCase()].points -= parseInt(value);
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -436,12 +634,12 @@ function reducePoints(username, value) {
 }
 
 /**
- * Gets the total number of completed tasks across all users.
+ * Retrieves the total count of tasks from the board.
  *
- * @returns {number} The total number of completed tasks.
+ * @returns {number} The total count of tasks. If no tasks are found, returns 0.
  */
-function getBoardTotalTaskCount() {
-	const counts = JSON.parse(localStorage.counts);
+async function getBoardTotalTaskCount() {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.totalCompleteCount) {
 		return 0;
@@ -457,8 +655,8 @@ function getBoardTotalTaskCount() {
  * @param {number} value - The new task count for the user.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains a success message.
  */
-function setUserTaskCount(username, value) {
-	const counts = JSON.parse(localStorage.counts);
+async function setUserTaskCount(username, value) {
+	const counts = await DBHandler.get("counts");
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
@@ -472,7 +670,7 @@ function setUserTaskCount(username, value) {
 
 	counts.users[username.toLowerCase()].taskCount = parseInt(value);
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -487,14 +685,14 @@ function setUserTaskCount(username, value) {
  *
  * @returns {Object} An object with a status and body. The status is 200 if the synchronization is successful, and the body contains a success message.
  */
-function syncPointsToCount() {
-	const counts = JSON.parse(localStorage.counts);
+async function syncPointsToCount() {
+	const counts = await DBHandler.get("counts");
 
 	for (const user in counts.users) {
 		counts.users[user].points = calculatePoints(user);
 	}
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -510,8 +708,8 @@ function syncPointsToCount() {
  * @param {number} limit - The maximum number of users to include in the leaderboard.
  * @returns {Object} An object with a status and body. The status is 200 if successful, and the body contains an array of user objects, each with a username and task count, sorted in descending order of task count.
  */
-function leaderboardTaskCount(limit) {
-	const counts = JSON.parse(localStorage.counts);
+async function leaderboardTaskCount(limit) {
+	const counts = await DBHandler.get("counts");
 
 	let leaderboardArray = [];
 
@@ -548,12 +746,12 @@ function leaderboardTaskCount(limit) {
 /**
  * Resets the total count of completed tasks in the board to zero.
  */
-function resetBoardCount() {
-	const counts = JSON.parse(localStorage.counts);
+async function resetBoardCount() {
+	const counts = await DBHandler.get("counts");
 
 	counts.totalCompleteCount = 0;
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -566,12 +764,12 @@ function resetBoardCount() {
 /**
  * Resets the task count for all users.
  */
-function resetUsersCount() {
-	const counts = JSON.parse(localStorage.counts);
+async function resetUsersCount() {
+	const counts = await DBHandler.get("counts");
 
 	counts.users = {};
 
-	localStorage.setItem(`counts`, JSON.stringify(counts));
+	await DBHandler.set("counts", counts);
 
 	return {
 		status: 200,
@@ -589,8 +787,8 @@ function resetUsersCount() {
  * @param {string} task - The task text.
  * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
-function addTask(username, userColor, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function addTask(username, userColor, task) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		tasks[username] = {
 			todos: [],
@@ -599,149 +797,85 @@ function addTask(username, userColor, task) {
 		};
 	}
 
-	if (
+	const taskExists = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
+	const userHasReachedTaskLimit =
 		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit
-	) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has reached the limit of ${settings.limit} tasks`,
-				error: responses.noTaskAdded,
-			},
-		};
+		settings.enableLimit;
+
+	if (taskExists) {
+		return createErrorResponse(
+			`@${username} already has this task`,
+			getResponse("duplicateTask")
+		);
 	}
 
-	if (
-		tasks[username].todos.find(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		)
-	) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} already has this task`,
-				error: responses.duplicateTask,
-			},
-		};
+	if (taskIsInvalid) {
+		return createErrorResponse(
+			`@${username} empty task or reserved keyword used`,
+			getResponse("noTaskContent")
+		);
 	}
 
-	// if task is whitespace or empty
-	if (!task || !task.trim()) {
-		return {
-			status: 2,
-			body: {
-				"error message": `@${username} empty task`,
-				error: responses.noTaskContent,
-			},
-		};
+	if (userHasReachedTaskLimit) {
+		return createErrorResponse(
+			`@${username} has reached the limit of ${settings.limit} tasks`,
+			getResponse("noTaskAdded")
+		);
 	}
 
-	// if task is "all", return error
-	if (task.toLowerCase() === "all") {
-		return {
-			status: 2,
-			body: {
-				"error message": `@${username} all is a reserved keyword`,
-				error: responses.noTaskContent,
-			},
-		};
-	}
+	const tasksToAdd = taskSeparator.some((char) => task.includes(char))
+		? task
+				.split(taskSeparator.find((char) => task.includes(char)))
+				.map((t) => t.trim())
+		: [task];
+	const tasksFailedToAdd = [];
 
-	let tasksFailedToAdd = [];
-
-	// if task has commas
-	if (taskSeparator.some((char) => task.includes(char))) {
-		let tasksToAdd = [];
-
-		let char = taskSeparator.find((element) => task.includes(element));
-
-		tasksToAdd = task.split(char).map((t) => t.trim());
-
-		if (
-			incompleteTasksCount(username) + tasksToAdd.length >
-				settings.limit &&
-			settings.enableLimit
-		) {
-			tasksFailedToAdd = tasksToAdd.slice(
-				settings.limit - incompleteTasksCount(username),
-				tasksToAdd.length
-			);
-
-			tasksToAdd = tasksToAdd.slice(
-				0,
-				settings.limit - incompleteTasksCount(username)
-			);
-		}
-
-		for (const t of tasksToAdd) {
-			if (t === "") {
-				continue;
-			}
-			if (t === "all") {
-				tasksFailedToAdd.push(t);
-				// remove from tasksToAdd
-				tasksToAdd = tasksToAdd.filter((task) => task !== t);
-				continue;
-			}
-			if (tasks[username].todos.find((task) => task.text === t)) {
-				tasksToAdd = tasksToAdd.filter((task) => task !== t);
-				tasksFailedToAdd.push(t);
-				continue;
-			}
-
+	tasksToAdd.forEach((t) => {
+		if (t && !tasks[username].todos.find((task) => task.text === t)) {
+			tasks[username].todos.push({ text: t, done: false, focus: false });
 			taskListMemory.totalTaskCount++;
-
-			tasks[username].todos.push({
-				text: t,
-				done: false,
-				focus: false,
-			});
+		} else {
+			tasksFailedToAdd.push(t);
 		}
+	});
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-
-		return {
-			status: 200,
-			body: {
-				task: tasksToAdd.join('", "'),
-				tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
-			},
-		};
-	} else {
-		tasks[username].todos.push({ text: task, done: false, focus: false });
-		taskListMemory.totalTaskCount++;
-
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-
-		return {
-			status: 200,
-			body: {
-				task: task,
-				tasksFailedToAdd: "",
-			},
-		};
+	await DBHandler.set("tasks", tasks);
+	if (!scrolling) {
+		renderTaskListToDOM();
 	}
+
+	return {
+		status: 200,
+		body: {
+			task: tasksToAdd.join('", "'),
+			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+		},
+	};
+}
+
+function createErrorResponse(errorMessage, errorType) {
+	return {
+		status: 0,
+		body: {
+			"error message": errorMessage,
+			error: errorType,
+		},
+	};
 }
 
 /**
- * This function adds a new task to a user's task list and sets it as the currently focused task.
+ * Adds a task to a user's task list and sets it as the current task.
  *
- * @param {string} username - The name of the user for whom the task is being added.
- * @param {string} userColor - The color associated with the user.
- * @param {string} task - The text description of the task to be added.
- *
- * @returns {Object} - An object containing the status of the operation and a body with either the task added or an error message.
+ * @param {string} username - The user's name.
+ * @param {string} userColor - The user's associated color.
+ * @param {string} task - The task text.
+ * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
-function nowTask(username, userColor, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function nowTask(username, userColor, task) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		tasks[username] = {
 			todos: [],
@@ -750,77 +884,51 @@ function nowTask(username, userColor, task) {
 		};
 	}
 
-	if (
+	const taskExists = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
+	const userHasReachedTaskLimit =
 		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit
-	) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has reached the limit of ${settings.limit} tasks`,
-				error: responses.noTaskAdded,
-			},
-		};
+		settings.enableLimit;
+	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
+
+	if (taskExists) {
+		return createErrorResponse(
+			`@${username} already has this task`,
+			getResponse("duplicateTask")
+		);
 	}
 
-	if (
-		tasks[username].todos.find(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		)
-	) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} already has this task`,
-				error: responses.duplicateTask,
-			},
-		};
+	if (taskIsInvalid) {
+		return createErrorResponse(
+			`@${username} empty task or reserved keyword used`,
+			getResponse("noTaskContent")
+		);
 	}
 
-	// if task is whitespace or empty
-	if (!task || !task.trim()) {
-		return {
-			status: 2,
-			body: {
-				"error message": `@${username} empty task`,
-				error: responses.noTaskContent,
-			},
-		};
+	if (userHasReachedTaskLimit) {
+		return createErrorResponse(
+			`@${username} has reached the limit of ${settings.limit} tasks`,
+			getResponse("noTaskAdded")
+		);
 	}
 
-	// if task is "all", return error
-	if (task.toLowerCase() === "all") {
-		return {
-			status: 2,
-			body: {
-				"error message": `@${username} all is a reserved keyword`,
-				error: responses.noTaskContent,
-			},
-		};
+	if (taskHasSeparators) {
+		return createErrorResponse(
+			`@${username} cannot add multiple tasks with now`,
+			getResponse("noTaskContent")
+		);
 	}
 
-	// if task has commas
-	if (taskSeparator.some((char) => task.includes(char))) {
-		// return an error because you can't add multiple tasks with now
-		return {
-			status: 2,
-			body: {
-				"error message": `@${username} cannot add multiple tasks with now`,
-				error: responses.noTaskContent,
-			},
-		};
-	}
-
-	// set all tasks to unfocused
-	for (const task of tasks[username].todos) {
+	tasks[username].todos.forEach((task) => {
 		task.focus = false;
-	}
+	});
 
 	tasks[username].todos.push({ text: task, done: false, focus: true });
 	taskListMemory.totalTaskCount++;
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-
+	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
@@ -834,44 +942,111 @@ function nowTask(username, userColor, task) {
 }
 
 /**
- * Focuses a specified task for a given user. If the task is successfully focused, the function returns an object with a status of 200 and the focused task. If the task is not focused due to the user having no tasks, the task being invalid input, or the task already being focused, the function returns an object with a status indicating the error and an error message.
+ * This function adds a new task to a user's task list and sets it as the currently focused task.
+ *
+ * @param {string} username - The name of the user for whom the task is being added.
+ * @param {string} userColor - The color associated with the user.
+ * @param {string} task - The text description of the task to be added.
+ *
+ * @returns {Object} - An object containing the status of the operation and a body with either the task added or an error message.
+ */
+async function nowTask(username, userColor, task) {
+	const tasks = await DBHandler.get("tasks");
+	if (!tasks[username]) {
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
+	}
+
+	const taskExists = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
+	const userHasReachedTaskLimit =
+		incompleteTasksCount(username) >= settings.limit &&
+		settings.enableLimit;
+	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
+
+	if (taskExists) {
+		return createErrorResponse(
+			`@${username} already has this task`,
+			getResponse("duplicateTask")
+		);
+	}
+
+	if (taskIsInvalid) {
+		return createErrorResponse(
+			`@${username} empty task or reserved keyword used`,
+			getResponse("noTaskContent")
+		);
+	}
+
+	if (userHasReachedTaskLimit) {
+		return createErrorResponse(
+			`@${username} has reached the limit of ${settings.limit} tasks`,
+			getResponse("noTaskAdded")
+		);
+	}
+
+	if (taskHasSeparators) {
+		return createErrorResponse(
+			`@${username} cannot add multiple tasks with now`,
+			getResponse("noTaskContent")
+		);
+	}
+
+	tasks[username].todos.forEach((task) => {
+		task.focus = false;
+	});
+
+	tasks[username].todos.push({ text: task, done: false, focus: true });
+	taskListMemory.totalTaskCount++;
+
+	await DBHandler.set("tasks", tasks);
+	if (!scrolling) {
+		renderTaskListToDOM();
+	}
+
+	return {
+		status: 200,
+		body: {
+			task: task,
+		},
+	};
+}
+
+/**
+ * This function focuses a specified task for a given user. If the task is successfully focused, the function returns an object with a status of 200 and the focused task. If the task is not focused due to the user having no tasks, the task being invalid input, or the task already being focused, the function returns an object with a status indicating the error and an error message.
  *
  * @param {string} username - The name of the user whose task is to be focused.
  * @param {string} task - The task to be focused.
  * @returns {Object} An object with a status and body. The status is 200 if the task is successfully focused, and the body contains the focused task. If the task is not focused, the status indicates the error and the body contains an error message.
  */
-function focusTask(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function focusTask(username, task) {
+	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 	if (incompleteTasks.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no incomplete tasks`,
-				error: responses.noTask,
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no incomplete tasks`,
+			getResponse("noTask")
+		);
 	}
 
-	if (task.includes(",")) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} need to specify ONLY ONE task`,
-				error: responses.onlyOneFocus,
-			},
-		};
+	if (taskSeparator.some((separator) => task.includes(separator))) {
+		return createErrorResponse(
+			`@${username} need to specify ONLY ONE task`,
+			getResponse("onlyOneFocus")
+		);
 	}
 
 	let index = tasks[username].todos.findIndex(
@@ -884,33 +1059,24 @@ function focusTask(username, task) {
 		} else if (incompleteTasks.length === 1) {
 			index = tasks[username].todos.findIndex((t) => !t.done);
 		} else {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} invalid input`,
-					error: responses.specifyFocusTask,
-				},
-			};
+			return createErrorResponse(
+				`@${username} invalid input`,
+				getResponse("specifyFocusTask")
+			);
 		}
 
 		if (index < 0 || index > tasks[username].todos.length - 1) {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} invalid input`,
-					error: responses.specifyFocusTask,
-				},
-			};
+			return createErrorResponse(
+				`@${username} invalid input`,
+				getResponse("specifyFocusTask")
+			);
 		}
 	} else {
 		if (tasks[username].todos[index].done) {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} task is already completed`,
-					error: responses.specifyFocusTask,
-				},
-			};
+			return createErrorResponse(
+				`@${username} task is already completed`,
+				getResponse("specifyFocusTask")
+			);
 		}
 	}
 
@@ -918,24 +1084,21 @@ function focusTask(username, task) {
 
 	// if task is already focused, return 1
 	if (tasks[username].todos[index].focus) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} task is already focused`,
-				error: responses.alreadyFocusedTask,
-			},
-		};
+		return createErrorResponse(
+			`@${username} task is already focused`,
+			getResponse("alreadyFocusedTask")
+		);
 	}
 
 	// set all tasks to unfocused
-	for (const task of tasks[username].todos) {
+	tasks[username].todos.forEach((task) => {
 		task.focus = false;
-	}
+	});
 
 	// set task to focused
 	tasks[username].todos[index].focus = true;
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
 		renderTaskListToDOM();
@@ -950,41 +1113,35 @@ function focusTask(username, task) {
 }
 
 /**
- * Unfocuses all tasks for a given user. If the tasks are successfully unfocused, the function returns an object with a status of 200. If the tasks are not unfocused due to the user having no tasks or no tasks being focused, the function returns an object with a status indicating the error and an error message.
+ * This function unfocuses all tasks for a given user. If the tasks are successfully unfocused, the function returns an object with a status of 200. If the tasks are not unfocused due to the user having no tasks or no tasks being focused, the function returns an object with a status indicating the error and an error message.
  *
  * @param {string} username - The name of the user whose tasks are to be unfocused.
  * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully unfocused. If the tasks are not unfocused, the status indicates the error and the body contains an error message.
  */
-function unfocusTask(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function unfocusTask(username) {
+	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	// if no tasks are focused, return 1
 	if (!tasks[username].todos.find((t) => t.focus)) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} no tasks are focused`,
-				error: responses.noFocusedTask,
-			},
-		};
+		return createErrorResponse(
+			`@${username} no tasks are focused`,
+			getResponse("noFocusedTask")
+		);
 	}
 
 	// set all tasks to unfocused
-	for (const task of tasks[username].todos) {
+	tasks[username].todos.forEach((task) => {
 		task.focus = false;
-	}
+	});
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
 		renderTaskListToDOM();
@@ -1002,14 +1159,14 @@ function unfocusTask(username) {
  * @param {string} task - The task to be removed.
  * @returns {Object} An object with a status and body. The status is 200 if the task is successfully removed, and the body contains the removed task. If the task is not removed, the status indicates the error and the body contains an error message.
  */
-function removeTask(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function removeTask(username, task) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1070,7 +1227,7 @@ function removeTask(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
@@ -1080,11 +1237,15 @@ function removeTask(username, task) {
 
 		// remove tasks from tasks array
 		for (const index of removedTaskIndex) {
+			// decrement totalTaskCount if task is not done
+			if (!tasks[username].todos[index].done) {
+				taskListMemory.totalTaskCount--;
+			}
+
 			tasks[username].todos.splice(index, 1);
-			taskListMemory.totalTaskCount--;
 		}
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
@@ -1110,7 +1271,7 @@ function removeTask(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1120,7 +1281,7 @@ function removeTask(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1130,7 +1291,7 @@ function removeTask(username, task) {
 
 		tasks[username].todos.splice(index, 1);
 		taskListMemory.totalTaskCount--;
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
 		renderTaskListToDOM();
 		return {
 			status: 200,
@@ -1150,14 +1311,14 @@ function removeTask(username, task) {
  *
  * @returns {Object} - An object containing the status of the operation and a body with either the old and new task or an error message.
  */
-function nextTask(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function nextTask(username, task) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1167,7 +1328,7 @@ function nextTask(username, task) {
 			status: 1,
 			body: {
 				"error message": `@${username} empty task`,
-				error: responses.nextNoContent,
+				error: getResponse("nextNoContent"),
 			},
 		};
 	}
@@ -1179,7 +1340,7 @@ function nextTask(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has more than one incomplete task`,
-				error: responses.taskNextFailed,
+				error: getResponse("taskNextFailed"),
 			},
 		};
 	} else {
@@ -1198,7 +1359,67 @@ function nextTask(username, task) {
 		tasks[username].todos.push({ text: task, done: false, focus: false });
 		taskListMemory.totalTaskCount++;
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: task,
+			},
+		};
+	}
+}
+
+async function nextTask(username, task) {
+	const tasks = await DBHandler.get("tasks");
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: getResponse("noTask"),
+			},
+		};
+	}
+
+	if (task === "") {
+		return {
+			status: 1,
+			body: {
+				"error message": `@${username} empty task`,
+				error: getResponse("nextNoContent"),
+			},
+		};
+	}
+
+	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
+
+	if (incompleteTasks.length !== 1) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has more than one incomplete task`,
+				error: getResponse("taskNextFailed"),
+			},
+		};
+	} else {
+		// mark the incomplete task as complete, then add a new task "task"
+
+		// find index of incomplete task
+		let index = tasks[username].todos.findIndex((t) => !t.done);
+
+		let oldTask = tasks[username].todos[index].text;
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+		addDoneCount(username, 1);
+
+		// add new task
+		tasks[username].todos.push({ text: task, done: false, focus: false });
+		taskListMemory.totalTaskCount++;
+
+		await DBHandler.set("tasks", tasks);
 
 		return {
 			status: 200,
@@ -1230,15 +1451,15 @@ function isInt(value) {
  * @param {string} username - The name of the user whose completed tasks are to be cleared.
  * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully cleared. If the tasks are not cleared, the status indicates the error and the body contains an error message.
  */
-function clearOwnDoneTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function clearOwnDoneTasks(username) {
+	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1248,7 +1469,7 @@ function clearOwnDoneTasks(username) {
 	// replace user's task with incomplete tasks
 	tasks[username].todos = incompleteUserTasks;
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
@@ -1265,8 +1486,8 @@ function clearOwnDoneTasks(username) {
  * @param {string} task - The task to be marked as done.
  * @returns {Object} An object with a status and body. The status is 200 if the task is successfully marked as done, and the body contains the marked task. If the task is not marked as done, the status indicates the error and the body contains an error message.
  */
-function markTaskDone(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function markTaskDone(username, task) {
+	const tasks = await DBHandler.get("tasks");
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -1274,7 +1495,7 @@ function markTaskDone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1286,7 +1507,7 @@ function markTaskDone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no incomplete tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1304,8 +1525,6 @@ function markTaskDone(username, task) {
 
 	// check if there's a comma in the task (multiple tasks)
 	if (taskSeparator.some((separator) => task.includes(separator))) {
-		// let tasksToMarkDone = task.split(",").map((t) => t.trim());
-
 		let tasksToMarkDone = [];
 
 		let char = taskSeparator.find((element) => task.includes(element));
@@ -1345,12 +1564,12 @@ function markTaskDone(username, task) {
 				} else {
 					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
-					addDoneCount(username, 1);
+					await addDoneCount(username, 1);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
 				// increment count
-				addDoneCount(username, 1);
+				await addDoneCount(username, 1);
 			}
 			tasks[username].todos[index].done = true;
 			tasks[username].todos[index].focus = false;
@@ -1361,12 +1580,12 @@ function markTaskDone(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
@@ -1406,7 +1625,7 @@ function markTaskDone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1416,7 +1635,7 @@ function markTaskDone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1428,7 +1647,7 @@ function markTaskDone(username, task) {
 				status: 2,
 				body: {
 					"error message": `@${username} task is already completed`,
-					error: responses.alreadyDoneTask,
+					error: getResponse("alreadyDoneTask"),
 				},
 			};
 		}
@@ -1437,7 +1656,7 @@ function markTaskDone(username, task) {
 		tasks[username].todos[index].done = true;
 		addDoneCount(username, 1);
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
@@ -1458,8 +1677,8 @@ function markTaskDone(username, task) {
  * @param {string} username - The name of the user whose tasks are to be marked as done.
  * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully marked as done. If the tasks are not marked as done, the status indicates the error and the body contains an error message.
  */
-function markAllTasksAsDone(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function markAllTasksAsDone(username) {
+	const tasks = await DBHandler.get("tasks");
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -1467,7 +1686,7 @@ function markAllTasksAsDone(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1479,7 +1698,7 @@ function markAllTasksAsDone(username) {
 		task.done = true;
 	}
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
@@ -1493,8 +1712,8 @@ function markAllTasksAsDone(username) {
 // 1: invalid input
 // 2: task is already incomplete
 // 200: succcess
-function markTaskUndone(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function markTaskUndone(username, task) {
+	const tasks = await DBHandler.get("tasks");
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -1502,7 +1721,7 @@ function markTaskUndone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1562,12 +1781,12 @@ function markTaskUndone(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
 
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
+		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
 			renderTaskListToDOM();
 		}
@@ -1594,7 +1813,7 @@ function markTaskUndone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1604,7 +1823,7 @@ function markTaskUndone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1612,7 +1831,7 @@ function markTaskUndone(username, task) {
 			tasks[username].todos[index].done = false;
 			addDoneCount(username, -1);
 
-			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+			await DBHandler.set("tasks", tasks);
 
 			if (!scrolling) {
 				renderTaskListToDOM();
@@ -1628,7 +1847,7 @@ function markTaskUndone(username, task) {
 			tasks[username].todos[index].done = false;
 			addDoneCount(username, -1);
 
-			localStorage.setItem(`tasks`, JSON.stringify(tasks));
+			await DBHandler.set("tasks", tasks);
 
 			if (!scrolling) {
 				renderTaskListToDOM();
@@ -1653,8 +1872,8 @@ function markTaskUndone(username, task) {
  * @param {string} message - The message containing the task index and the new task.
  * @returns {Object} An object with a status and body. The status is 200 if the task is successfully edited, and the body contains the original task and the new task. If the task is not edited, the status indicates the error and the body contains an error message.
  */
-function editTask(username, message) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function editTask(username, message) {
+	const tasks = await DBHandler.get("tasks");
 	let noSpecifiedIndex = false;
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
@@ -1662,7 +1881,7 @@ function editTask(username, message) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1685,7 +1904,7 @@ function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.specifyTaskIndex,
+				error: getResponse("specifyTaskIndex"),
 			},
 		};
 	}
@@ -1702,7 +1921,7 @@ function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.noTaskContent,
+				error: getResponse("noTaskContent"),
 			},
 		};
 	}
@@ -1712,7 +1931,7 @@ function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.specifyTaskIndex,
+				error: getResponse("specifyTaskIndex"),
 			},
 		};
 	}
@@ -1721,7 +1940,7 @@ function editTask(username, message) {
 
 	tasks[username].todos[index].text = newTask;
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		renderTaskListToDOM();
 	}
@@ -1741,8 +1960,8 @@ function editTask(username, message) {
  * @param {string} username - The name of the user whose tasks are to be checked.
  * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
  */
-function checkTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function checkTasks(username) {
+	const tasks = await DBHandler.get("tasks");
 
 	// Go through keys of tasks, find match of lowercased username
 	username = Object.keys(tasks).find(
@@ -1754,7 +1973,7 @@ function checkTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1804,14 +2023,14 @@ function checkTasks(username) {
 }
 
 // 0: user has no tasks
-function listTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function listTasks(username) {
+	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		return {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1823,7 +2042,7 @@ function listTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no incomplete tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1857,8 +2076,8 @@ function listTasks(username) {
  * @param {string} username - The name of the user whose tasks are to be cleared.
  * @returns {Object} An object with a status and body. The status is 200 if the tasks are successfully cleared. If the tasks are not cleared, the status indicates the error and the body contains an error message.
  */
-function clearUserTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
+async function clearUserTasks(username) {
+	const tasks = await DBHandler.get("tasks");
 	// find username where lowercase matches username
 	username = Object.keys(tasks).find(
 		(user) => user.toLowerCase() === username.toLowerCase()
@@ -1869,14 +2088,14 @@ function clearUserTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
 
 	tasks[username].todos = [];
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
 		renderTaskListToDOM();
@@ -1892,13 +2111,13 @@ function clearUserTasks(username) {
  *
  * @returns {Object} An object with a status. The status is 200 if the tasks are successfully cleared.
  */
-function clearAllDoneTasks() {
-	const tasks = JSON.parse(localStorage.tasks);
+async function clearAllDoneTasks() {
+	const tasks = await DBHandler.get("tasks");
 	for (const user in tasks) {
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
 	cancelAnimation();
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 	renderTaskListToDOM();
 
 	return {
@@ -1906,8 +2125,8 @@ function clearAllDoneTasks() {
 	};
 }
 
-function clearAllTasks() {
-	localStorage.setItem(`tasks`, "{}");
+async function clearAllTasks() {
+	await DBHandler.set("tasks", {});
 	cancelAnimation();
 	renderTaskListToDOM();
 
@@ -1934,23 +2153,19 @@ function clearAll() {
  * @param {string[]} streamerUsernames - An array of streamer usernames whose tasks should not be cleared.
  * @returns {Object} An object with a status property indicating the success of the operation (200 for success).
  */
-function clearAllExceptStreamer(streamerUsernames) {
+async function clearAllExceptStreamer(streamerUsername) {
 	// clear all tasks except for broadcasters
-	const tasks = JSON.parse(localStorage.tasks);
+	const tasks = await DBHandler.get("tasks");
 
 	// streamerusernames lowercased
 
-	streamerUsernames = streamerUsernames.map((username) =>
-		username.toLowerCase()
-	);
-
 	for (const user in tasks) {
-		if (!streamerUsernames.includes(user.toLowerCase())) {
+		if (user.toLowerCase() !== streamerUsername.toLowerCase()) {
 			tasks[user].todos = [];
 		}
 	}
 
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+	await DBHandler.set("tasks", tasks);
 
 	clearAllDoneTasks();
 
@@ -1968,8 +2183,8 @@ const taskListMemory = {
 	totalTaskCount: 0,
 };
 
-function renderTaskListToDOM() {
-	const tasks = JSON.parse(localStorage.tasks);
+async function renderTaskListToDOM() {
+	const tasks = await DBHandler.get("tasks");
 
 	const taskContainers = document.querySelectorAll(".task-container");
 
@@ -2032,6 +2247,10 @@ function renderTaskListToDOM() {
 			totalTaskCount = taskListMemory.totalTaskCount;
 		}
 
+		if (totalTaskCount < completedTasksCount) {
+			totalTaskCount = completedTasksCount;
+		}
+
 		document.querySelector(
 			".task-count"
 		).innerText = `${completedTasksCount}/${totalTaskCount}`;
@@ -2039,7 +2258,9 @@ function renderTaskListToDOM() {
 		taskListMemory.doneTaskCount = completedTasksCount;
 		taskListMemory.totalTaskCount = totalTaskCount;
 	});
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
+
+	await DBHandler.set("tasks", tasks);
+
 	checkToAnimate();
 }
 
@@ -2158,12 +2379,16 @@ function cancelAnimation() {
 	scrolling = false;
 }
 
-(function () {
-	setupDB();
-	if (settings.testTasks) {
-		resetDB();
-		tests();
-	}
-	importStyles();
-	renderTaskListToDOM();
-})();
+DBHandler.open()
+	.then(() => {
+		setupDB();
+		if (settings.testTasks) {
+			resetDB();
+			tests();
+		}
+		importStyles();
+		renderTaskListToDOM();
+	})
+	.catch((error) => {
+		console.error("Error opening database:", error);
+	});

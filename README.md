@@ -20,6 +20,7 @@ I'll just update you guys on the Discord
   - [Logs](#logs)
   - [Content](#content)
   - [Installation](#installation)
+    - [Note for YouTube Streamers:](#note-for-youtube-streamers)
   - [Customization settings](#customization-settings)
     - [settings](#settings)
     - [task list styles](#task-list-styles)
@@ -54,6 +55,10 @@ I'll just update you guys on the Discord
 
 -   Local File: `checked`
 -   Browse to `index.html`
+
+### Note for YouTube Streamers:
+- If you're adding an alt account as a bot, be sure to set alt account as moderator (/moderator @alt_account)
+- If there's some errors, try creating a channel for the alt account
 
 ---
 
