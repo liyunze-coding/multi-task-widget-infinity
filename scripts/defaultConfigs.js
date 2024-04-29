@@ -1,36 +1,23 @@
-const configs = (function () {
+const defaultConfigs = (function () {
 	"use strict";
 
+	const StreamerUsernames = ["RythonDev"];
+
+	// settings
 	const settings = {
 		enableLimit: false, // true or false
 		limit: 10, // integer
 		automaticDoneIndex: false, // true or false - Automatically assume first unfinished task is complete
 		pointsName: "points", // string
 		pointsPerTask: 10, // integer
-		taskSeparator: [";", ","], // array of strings
+		taskSeparator: [";", ",", "|"], // array of strings
 		testTasks: false, // true or false
-		headerGoogleFont: true, // true: use google font, false: use system font
-		taskGoogleFont: true, // true: use google font, false: use system font
+		headerGoogleFont: false, // true: use google font, false: use system font
+		taskGoogleFont: false, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
 	};
 
-	const animation = {
-		scrollSpeed: 40, // milliseconds
-		gapBetweenScrolls: 0, // px
-		titles: [
-			"!taskhelp",
-			"!task",
-			"!edit",
-			"!remove",
-			"!done",
-			"!undone",
-			"!botcred",
-			"!count",
-			"!points",
-			"!boardcount",
-		],
-	};
-
+	// styles
 	const styles = {
 		// task list
 		taskListBackgroundColor: "#000000", // hex only
@@ -45,21 +32,21 @@ const configs = (function () {
 
 		// header
 		headerHorizontalPadding: "10px", // px
-		headerVerticalPadding: "10px", // px
+		headerVerticalPadding: "20px", // px
 
-		headerBackgroundColor: "#fff", // hex only
-		headerBackgroundOpacity: 1, // 0.0 - 1.0
+		headerBackgroundColor: "#000", // hex only
+		headerBackgroundOpacity: 0, // 0.0 - 1.0
 
 		headerBorderWidth: "0px", // px
 		headerBorderColor: "#ffffff", // hex or name
 		headerBorderRadius: "3px", // px
 
-		headerFontFamily: "Fredoka", // font name
-
-		headerFontSize: "25px", // px
+		headerFontFamily: "monospace", // font name
+		headerFontSize: "2rem", // px
 		headerFontWeight: "bold", // normal or bold or number
+		headerFontColor: "#fff", // hex or name
 
-		headerFontColor: "#000", // hex or name
+		taskCountMarginRight: "175px", // px
 
 		// body
 		bodyBackgroundColor: "#fff", // hex only
@@ -72,17 +59,16 @@ const configs = (function () {
 		// task
 		lineHeight: 1.5, // number
 		usernameFontWeight: "bold", // normal or bold or number
-		usernameColor: "pink", // hex or name or "" for twitch user color
-		usernameFontSize: "20px", // px
+		usernameColor: "lime", // hex or name or "" for twitch user color
+		usernameFontSize: "1.5rem", // px
 
 		taskWidth: "100%",
 
 		taskBackgroundColor: "#000", // hex only
 		taskBackgroundOpacity: 0, // 0.0 - 1.0
 
-		taskFontFamily: "Poppins", // font name
-
-		taskFontSize: "20px", // px
+		taskFontFamily: "monospace", // font name
+		taskFontSize: "1.5rem", // px
 		taskFontColor: "#fff", // hex or name
 
 		taskBorderColor: "#fff", // hex or name
@@ -107,10 +93,26 @@ const configs = (function () {
 		focusTaskVerticalPadding: "0px", // px
 	};
 
-	// STYLES
+	// animation
+	const animation = {
+		scrollSpeed: 50, // px
+		gapBetweenScrolls: 50, // px
+		titles: [
+			"!multitask",
+			"!taskhelp",
+			"!task",
+			"!edit",
+			"!remove",
+			"!done",
+			"!undone",
+			"!botcred",
+			"!count",
+			"!points",
+			"!boardcount",
+		],
+	};
 
 	const commands = {
-		// Add task commands - please add commands in the exact format
 		addTaskCommands: [
 			"!taska",
 			"!taskadd",
@@ -121,8 +123,6 @@ const configs = (function () {
 			"!todo",
 			"!a",
 		],
-
-		// Edit task commands - please add commands in the exact format
 		editTaskCommands: [
 			"!taske",
 			"!taskedit",
@@ -131,8 +131,6 @@ const configs = (function () {
 			"!edit",
 			"!e",
 		],
-
-		// Delete task commands - please add commands in the exact format
 		deleteTaskCommands: [
 			"!taskdel",
 			"!taskdelete",
@@ -146,8 +144,6 @@ const configs = (function () {
 			"!delete",
 			"!r",
 		],
-
-		// Finish task commands - please add commands in the exact format
 		finishTaskCommands: [
 			"!taskf",
 			"!taskfinish",
@@ -162,8 +158,6 @@ const configs = (function () {
 			"!finished",
 			"!f",
 		],
-
-		// Unfinish task commands - please add commands in the exact format
 		unfinishTaskCommands: [
 			"!tasku",
 			"!taskunfinish",
@@ -177,7 +171,6 @@ const configs = (function () {
 			"!unfinished",
 			"!u",
 		],
-
 		nextTaskCommands: [
 			"!taskn",
 			"!tasknext",
@@ -186,14 +179,17 @@ const configs = (function () {
 			"!next",
 			"!n",
 		],
-
-		// focus task commands - please add commands in the exact format
 		focusTaskCommands: ["!focus", "!taskfocus", "!focustask"],
 		unfocusTaskCommands: ["!unfocus", "!taskunfocus", "!unfocustask"],
-
 		nowTaskCommands: ["!now", "!tasknow", "!nowtask"],
-
-		// Check task commands - please add commands in the exact format
+		helpCommands: [
+			"!taskh",
+			"!taskhelp",
+			"!htask",
+			"!helptask",
+			"!tasks",
+			"!help",
+		],
 		checkCommands: [
 			"!taskc",
 			"!taskcheck",
@@ -203,16 +199,9 @@ const configs = (function () {
 			"!check",
 			"!mytasks",
 		],
-
-		// List tasks commands - please add commands in the exact format
 		listCommands: ["!taskl", "!tasklist", "!listtasks", "!list"],
-
-		// Clear my done commands - please add commands in the exact format
 		clearMyDoneCommands: ["!clearmydone"],
-
-		// check count commands - please add commands in the exact format
 		checkCountCommands: ["!taskcount", "!count", "!checkcount", "!mycount"],
-
 		checkAllCountCommands: [
 			"!taskallcount",
 			"!allcount",
@@ -221,82 +210,62 @@ const configs = (function () {
 			"!checkboardcount",
 			"!taskboardcount",
 		],
-
 		checkMyPointsCommands: [
 			"!taskpoints",
 			"!points",
 			"!mypoints",
 			"!checkpoints",
 		],
-
-		// sync points with count commands - please add commands in the exact format
 		syncCountPointsCommands: ["!syncpoints", "!synccount"],
-
 		addPointsCommands: ["!addpoints", "!givepoints", "!adduserpoints"],
-
 		reducePointsCommands: ["!reducepoints", "!takepoints"],
-
 		setUserPointsCommands: [
 			"!setuserpoints",
 			"!setpoints",
 			"!setpointsuser",
 			"!setuserpoint",
 		],
-
 		setUserTaskCountCommands: [
 			"!setusertaskcount",
 			"!settaskcount",
 			"!settaskcountuser",
 			"!setusertask",
 		],
-
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
-
-		// Help commands - please add commands in the exact format
-		helpCommands: [
-			"!taskh",
-			"!taskhelp",
-			"!htask",
-			"!helptask",
-			"!tasks",
-			"!help",
-		],
-
-		// Admin clear all except streamer - please add commands following the exact format
+		adminDeleteCommands: ["!taskadel", "!adel", "!adelete", "!admindelete"],
 		adminClearNotStreamerCommands: [
 			"!clearnotstreamer",
 			"!aclearnotstreamer",
 			"!adminclearnotstreamer",
 			"!clearns",
 		],
-
-		// Admin delete - please add commands following the exact format
-		adminDeleteCommands: ["!taskadel", "!adel", "!adelete", "!admindelete"],
-
-		// Admin clear done - please add commands following the exact format
 		adminClearDoneCommands: [
 			"!acleardone",
 			"!admincleardone",
 			"!cleardone",
 		],
-
-		adminClearTasksCommands: ["!cleartasks"],
-
-		adminResetBoardCount: ["!resetboardcount", "!resetallcount"],
-
-		adminResetUsersCount: ["!resetuserscount"],
-
 		adminClearAllCommands: ["!clearallnoregrets"],
-
+		adminClearTasksCommands: ["!cleartasks", "!clearalltasks", "!clearall"],
 		adminSetBoardCount: ["!setboardcount", "!setallcount"],
+		adminResetBoardCount: ["!resetboardcount", "!resetallcount"],
+		adminResetUsersCount: ["!resetuserscount"],
+		adminBackupCommands: ["!backup", "!backupdata", "!setbackup"],
+		adminLoadBackupCommands: [
+			"!loadbackup",
+			"!loaddata",
+			"!loadbackupdata",
+		],
 		additionalCommands: {
 			"!botcred":
 				"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/RythonDev",
+			"!multitask":
+				"If you want to add the multi-task widget to your stream, you can buy it from ko-fi! https://ko-fi.com/s/94e7e8dc81",
 		},
 	};
 
 	const responses = {
-		// Responses related to task addition
+		// Grouped by task-related responses
+		// Grouped by task creation and modification responses
 		taskAdded: 'The task(s) "{task}" has been added, {user}!',
 		noTaskAdded:
 			"Looks like you already hit the limit of incomplete tasks, {user}",
@@ -322,9 +291,9 @@ const configs = (function () {
 			"Try specifying the index of the incomplete task(s) {user}",
 		clearTasksExceptBroadcaster:
 			"All tasks have been cleared except for the streamer's, {user}!",
-		clearedTasks: "All tasks have been cleared, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s tasks have been deleted",
-		clearedAll: "All tasks and points have been cleared, {user}!",
+		clearedDone: "All completed tasks have been cleared, {user}!",
+		clearedAll: "All tasks and counts have been cleared, {user}!",
 
 		// Grouped by task completion responses
 		taskFinished:
@@ -367,23 +336,24 @@ const configs = (function () {
 		leaderboard: "Leaderboard: {leaderboard}",
 		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
 
+		// backup-related responses
+		backupStorage: "Data has been backed up, {user}!",
+		loadBackup: "Data has been loaded, {user}!",
+
 		// Grouped by permission-related responses
 		notMod: "Permission denied, {user}; Mods only",
 		notStreamer: "Permission denied, {user}; Streamer only",
 
-		// Help response
+		// Grouped by help-related responses
 		help: `{user} Use the following commands to help you out - !task !edit !remove !done. For mods, you can do !adel @user. More commmands here: https://github.com/liyunze-coding/Chat-Task-Tic-Overlay/blob/main/MultiTask.md/`,
 
-		"chat-task-tic":
-			"Chat-Task-Tic widget is a free and open source task widget developed by @RythonDev ! https://github.com/liyunze-coding/chat-task-tic-overlay-infinity",
-		multitask:
-			"If you want to add the multi-task widget to your stream, you can buy it from ko-fi! https://ko-fi.com/s/94e7e8dc81",
 		// to edit check task command, go to
 		// scripts/taskList.js
 		// function checkTasks(username)
 	};
 
 	return {
+		StreamerUsernames,
 		settings,
 		styles,
 		animation,
