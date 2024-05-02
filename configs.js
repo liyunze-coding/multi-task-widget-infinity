@@ -244,6 +244,7 @@ const configs = (function () {
 			"!admincleardone",
 			"!cleardone",
 		],
+		adminClearLocalStorageCommands: ["!clearlocalstorage"],
 		adminClearAllCommands: ["!clearallnoregrets"],
 		adminClearTasksCommands: ["!cleartasks", "!clearalltasks", "!clearall"],
 		adminSetBoardCount: ["!setboardcount", "!setallcount"],

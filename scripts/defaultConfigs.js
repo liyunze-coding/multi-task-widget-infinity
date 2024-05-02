@@ -255,6 +255,7 @@ const defaultConfigs = (function () {
 			"!loaddata",
 			"!loadbackupdata",
 		],
+		adminClearLocalStorageCommands: ["!clearlocalstorage"],
 		additionalCommands: {
 			"!botcred":
 				"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/RythonDev",
