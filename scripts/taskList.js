@@ -12,6 +12,13 @@ DB structure:
 			- completeCount
 			- points
 	- totalCompleteCount
+
+- taskmaster
+	- users
+		- [username]:
+			- completeCount
+	- totalCompleteCount
+	- startDate
 */
 
 const settings = configs.settings;
@@ -152,6 +159,7 @@ function convertToCSSVar(name) {
 	let cssVar = name.replace(/([A-Z])/g, "-$1").toLowerCase();
 	return `--${cssVar}`;
 }
+
 /**
  * Converts a hexadecimal color value to its RGB equivalent.
  *
@@ -189,18 +197,60 @@ function hexToRgb(hex) {
 }
 
 /**
- * Returns the current month and year.
+ * adds a count to user for 'taskmaster'
  *
- * @returns {Object} An object containing the current month as a number and the current year as a number.
+ * @param {string} username
  */
-function getMonthYear() {
-	let date = new Date();
-	let month = date.toLocaleString("default", { month: "numeric" });
-	let year = date.getFullYear();
-	return {
-		month: month,
-		year: year,
+async function addCountToTaskMasterUser(username, count = 1) {
+	const taskmaster = (await DBHandler.get("taskmaster")) || {
+		users: {},
+		startDate: new Date(),
+		totalCompleteCount: 0,
 	};
+
+	if (!taskmaster.users[username.toLowerCase()]) {
+		taskmaster.users[username.toLowerCase()] = {
+			completeCount: 0,
+		};
+	}
+
+	taskmaster.users[username.toLowerCase()].completeCount += count;
+
+	await DBHandler.set("taskmaster", taskmaster);
+}
+
+/**
+ * gets the count of a user from 'taskmaster'
+ *
+ * @param {string} username
+ * @returns {number} the count of the user
+ */
+async function getUserTaskMasterCount(username) {
+	const taskmaster = await DBHandler.get("taskmaster");
+
+	if (!taskmaster.users[username.toLowerCase()]) {
+		return 0;
+	}
+
+	return taskmaster.users[username.toLowerCase()].completeCount;
+}
+
+async function getTaskMasterChampion() {
+	const taskmaster = await DBHandler.get("taskmaster");
+
+	let champion = {
+		username: "",
+		count: 0,
+	};
+
+	for (const user in taskmaster.users) {
+		if (taskmaster.users[user].completeCount > champion.count) {
+			champion.username = user;
+			champion.count = taskmaster.users[user].completeCount;
+		}
+	}
+
+	return champion;
 }
 
 /**
@@ -409,6 +459,9 @@ async function addDoneCount(username, value) {
 	// add to points
 	counts.users[username.toLowerCase()].points +=
 		value * settings.pointsPerTask;
+
+	// add to taskmaster
+	addCountToTaskMasterUser(username, value);
 
 	await DBHandler.set("counts", counts);
 }

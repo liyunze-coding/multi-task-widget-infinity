@@ -252,6 +252,8 @@ const configs = (function () {
 
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
 
+		TaskMasterCommands: ["!taskmaster", "!taskchampion"],
+
 		// Help commands - please add commands in the exact format
 		helpCommands: [
 			"!taskh",
@@ -282,13 +284,13 @@ const configs = (function () {
 
 		adminClearTasksCommands: ["!cleartasks"],
 
-		adminResetBoardCount: ["!resetboardcount", "!resetallcount"],
+		adminResetBoardCountCommands: ["!resetboardcount", "!resetallcount"],
 
-		adminResetUsersCount: ["!resetuserscount"],
+		adminResetUsersCountCommands: ["!resetuserscount"],
 
 		adminClearAllCommands: ["!clearallnoregrets"],
 
-		adminSetBoardCount: ["!setboardcount", "!setallcount"],
+		adminSetBoardCountCommands: ["!setboardcount", "!setallcount"],
 		additionalCommands: {
 			"!botcred":
 				"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/RythonDev",
@@ -366,6 +368,10 @@ const configs = (function () {
 		noCountAll: "Looks like no one has completed a task yet {user}",
 		leaderboard: "Leaderboard: {leaderboard}",
 		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
+
+		// Grouped by taskmaster-related responses
+		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",
+		noTaskMaster: "No task master yet, {user}!",
 
 		// Grouped by permission-related responses
 		notMod: "Permission denied, {user}; Mods only",
