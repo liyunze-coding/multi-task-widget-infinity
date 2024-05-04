@@ -2,7 +2,7 @@ async function processCommand(user, command, message, flags, extra) {
 	params = {
 		user: user,
 		message: message,
-		pointName: configs.settings.pointsName,
+		pointName: getSetting("pointsName"),
 	};
 
 	if (getCommand("addTaskCommands").includes(command)) {
@@ -83,8 +83,7 @@ async function processCommand(user, command, message, flags, extra) {
 		params.task = finishRequest.body.markedTasks;
 		params.doneCount = await completedTasksCount(user);
 		params.pointCount =
-			finishRequest.body.markedTasksCount *
-			configs.settings.pointsPerTask;
+			finishRequest.body.markedTasksCount * getSetting("pointsPerTask");
 
 		if (finishRequest.body.failedTasks !== "") {
 			finishedResponse += ` | Failed to finish task(s): "${finishRequest.body.failedTasks}"`;
@@ -494,6 +493,10 @@ async function processCommand(user, command, message, flags, extra) {
 		await resetUsersCount();
 		respond(getResponse("clearedUsersCount"), params);
 	} else if (getCommand("taskMasterCommands").includes(command)) {
+		if (!getSetting("enableTaskMaster")) {
+			return;
+		}
+
 		let champion = await getTaskMasterChampion();
 
 		if (champion === null) {
@@ -506,6 +509,9 @@ async function processCommand(user, command, message, flags, extra) {
 
 		respond(getResponse("taskMaster"), params);
 	} else if (getCommand("resetTaskMasterCommands").includes(command)) {
+		if (!getSetting("enableTaskMaster")) {
+			return;
+		}
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;

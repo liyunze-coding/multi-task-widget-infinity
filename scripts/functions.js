@@ -6,9 +6,13 @@ function getResponse(responseName) {
 }
 
 function getCommand(commandName) {
-	console.log(configs.commands[commandName]);
-	console.log(defaultConfigs.commands[commandName]);
 	return (
 		configs.commands[commandName] ?? defaultConfigs.commands[commandName]
+	);
+}
+
+function getSetting(settingName) {
+	return (
+		configs.settings[settingName] ?? defaultConfigs.settings[settingName]
 	);
 }

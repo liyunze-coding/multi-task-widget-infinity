@@ -21,13 +21,12 @@ DB structure:
 	- startDate
 */
 
-const settings = configs.settings;
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
 const responses = configs.responses;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
-const taskSeparator = configs.settings.taskSeparator;
+const taskSeparator = getSetting("taskSeparator");
 
 const DBHandler = {
 	db: null,
@@ -272,10 +271,10 @@ function importStyles() {
 	const styles = configs.styles;
 
 	// fonts
-	if (configs.settings.headerGoogleFont) {
+	if (getSetting("headerGoogleFont")) {
 		loadGoogleFont(styles.headerFontFamily);
 	}
-	if (configs.settings.taskGoogleFont) {
+	if (getSetting("taskGoogleFont")) {
 		loadGoogleFont(styles.taskFontFamily);
 	}
 
@@ -314,7 +313,7 @@ function importStyles() {
 		);
 	});
 
-	if (!settings.displayTaskCount) {
+	if (!getSetting("displayTaskCount")) {
 		document.querySelector(".task-count").style.display = "none";
 	}
 
@@ -420,7 +419,7 @@ async function calculatePoints(username) {
 
 	return (
 		counts.users[username.toLowerCase()].completeCount *
-		settings.pointsPerTask
+		getSetting("pointsPerTask")
 	);
 }
 
@@ -470,7 +469,7 @@ async function addDoneCount(username, value) {
 
 	// add to points
 	counts.users[username.toLowerCase()].points +=
-		value * settings.pointsPerTask;
+		value * getSetting("pointsPerTask");
 
 	// add to taskmaster
 	addCountToTaskMasterUser(username, value);
@@ -788,8 +787,8 @@ async function addTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 
 	if (taskExists) {
 		return createErrorResponse(
@@ -807,7 +806,9 @@ async function addTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			responses.noTaskAdded
 		);
 	}
@@ -875,8 +876,8 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
 	if (taskExists) {
@@ -895,7 +896,9 @@ async function nowTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			responses.noTaskAdded
 		);
 	}
@@ -951,8 +954,8 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
 	if (taskExists) {
@@ -971,7 +974,9 @@ async function nowTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			responses.noTaskAdded
 		);
 	}
@@ -1603,7 +1608,7 @@ async function markTaskDone(username, task) {
 					(t) =>
 						t.text.toLowerCase() === focusedTask.text.toLowerCase()
 				);
-			} else if (settings.automaticDoneIndex) {
+			} else if (getSetting("automaticDoneIndex")) {
 				// index is the first incomplete task
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
@@ -2368,7 +2373,7 @@ function cancelAnimation() {
 DBHandler.open()
 	.then(() => {
 		setupDB();
-		if (settings.testTasks) {
+		if (getSetting("testTasks")) {
 			resetDB();
 			tests();
 		}

@@ -12,6 +12,7 @@ const defaultConfigs = (function () {
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
+		enableTaskMaster: false, // true or false
 	};
 
 	const animation = {
