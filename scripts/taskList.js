@@ -250,7 +250,19 @@ async function getTaskMasterChampion() {
 		}
 	}
 
+	if (champion.count === 0) {
+		return null;
+	}
+
 	return champion;
+}
+
+async function resetTaskMaster() {
+	await DBHandler.set("taskmaster", {
+		users: {},
+		startDate: new Date(),
+		totalCompleteCount: 0,
+	});
 }
 
 /**

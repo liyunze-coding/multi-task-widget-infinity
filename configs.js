@@ -252,7 +252,9 @@ const configs = (function () {
 
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
 
-		TaskMasterCommands: ["!taskmaster", "!taskchampion"],
+		taskMasterCommands: ["!taskmaster", "!taskchampion"],
+
+		resetTaskMasterCommands: ["!resettaskmaster"],
 
 		// Help commands - please add commands in the exact format
 		helpCommands: [
@@ -372,6 +374,7 @@ const configs = (function () {
 		// Grouped by taskmaster-related responses
 		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",
 		noTaskMaster: "No task master yet, {user}!",
+		resetTaskMaster: "Task Master has been reset, {user}!",
 
 		// Grouped by permission-related responses
 		notMod: "Permission denied, {user}; Mods only",

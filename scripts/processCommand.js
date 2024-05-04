@@ -493,10 +493,10 @@ async function processCommand(user, command, message, flags, extra) {
 
 		await resetUsersCount();
 		respond(getResponse("clearedUsersCount"), params);
-	} else if (getCommand("TaskMasterCommands")) {
+	} else if (getCommand("taskMasterCommands").includes(command)) {
 		let champion = await getTaskMasterChampion();
 
-		if (champion === "") {
+		if (champion === null) {
 			respond(getResponse("noTaskMaster"), params);
 			return;
 		}
@@ -505,6 +505,15 @@ async function processCommand(user, command, message, flags, extra) {
 		params.taskMasterCount = champion.count;
 
 		respond(getResponse("taskMaster"), params);
+	} else if (getCommand("resetTaskMasterCommands").includes(command)) {
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+
+		await resetTaskMaster();
+
+		respond(getResponse("resetTaskMaster"), params);
 	} else if (getCommand("helpCommands").includes(command)) {
 		respond(getResponse("help"), params);
 	} else if (command === "!clearlocalstorage") {
