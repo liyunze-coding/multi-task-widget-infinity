@@ -1,4 +1,3 @@
-var commands = configs.commands;
 async function processCommand(user, command, message, flags, source, extra) {
 	params = {
 		user: user,
@@ -7,7 +6,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		"source name": source,
 	};
 
-	if (commands.addTaskCommands.includes(command)) {
+	if (getCommand("addTaskCommands").includes(command)) {
 		let addRequest = await addTask(user, extra.userColor, message);
 
 		if (addRequest.status !== 200) {
@@ -23,7 +22,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(addedResponse, params);
-	} else if (commands.editTaskCommands.includes(command)) {
+	} else if (getCommand("editTaskCommands").includes(command)) {
 		let editRequest = await editTask(user, message);
 
 		if (editRequest.status !== 200) {
@@ -38,7 +37,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.originalTask = originalTask;
 
 		respond(getResponse("taskEdited"), params);
-	} else if (commands.deleteTaskCommands.includes(command)) {
+	} else if (getCommand("deleteTaskCommands").includes(command)) {
 		let removeRequest = await removeTask(user, message);
 
 		if (removeRequest.status !== 200) {
@@ -57,7 +56,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(deletedResponse, params);
-	} else if (commands.finishTaskCommands.includes(command)) {
+	} else if (getCommand("finishTaskCommands").includes(command)) {
 		if (message === "all") {
 			let finishAllRequest = await markAllTasksAsDone(user);
 
@@ -93,7 +92,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(finishedResponse, params);
-	} else if (commands.unfinishTaskCommands.includes(command)) {
+	} else if (getCommand("unfinishTaskCommands").includes(command)) {
 		let unfinishRequest = await markTaskUndone(user, message);
 
 		if (unfinishRequest.status !== 200) {
@@ -111,7 +110,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(unfinishedResponse, params);
-	} else if (commands.nextTaskCommands.includes(command)) {
+	} else if (getCommand("nextTaskCommands").includes(command)) {
 		let nextRequest = await nextTask(user, message);
 
 		if (nextRequest.status !== 200) {
@@ -126,7 +125,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.newTask = nextRequest.body.newTask;
 
 		respond(nextResponse, params);
-	} else if (commands.nowTaskCommands.includes(command)) {
+	} else if (getCommand("nowTaskCommands").includes(command)) {
 		let nowRequest = await nowTask(user, extra.userColor, message);
 
 		if (nowRequest.status !== 200) {
@@ -140,7 +139,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.task = nowRequest.body.task;
 
 		respond(nowResponse, params);
-	} else if (commands.focusTaskCommands.includes(command)) {
+	} else if (getCommand("focusTaskCommands").includes(command)) {
 		let focusRequest = await focusTask(user, message);
 
 		if (focusRequest.status !== 200) {
@@ -154,7 +153,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.task = focusRequest.body.focusedTask;
 
 		respond(focusedResponse, params);
-	} else if (commands.unfocusTaskCommands.includes(command)) {
+	} else if (getCommand("unfocusTaskCommands").includes(command)) {
 		let unfocusRequest = await unfocusTask(user);
 
 		if (unfocusRequest.status !== 200) {
@@ -166,7 +165,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		let unfocusedResponse = getResponse("clearFocused");
 
 		respond(unfocusedResponse, params);
-	} else if (commands.checkCommands.includes(command)) {
+	} else if (getCommand("checkCommands").includes(command)) {
 		if (message === "") {
 			let checkRequest = await checkTasks(user);
 			if (checkRequest.status !== 200) {
@@ -188,7 +187,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 			}
 			return respond(checkRequest.body.reply, params);
 		}
-	} else if (commands.adminDeleteCommands.includes(command)) {
+	} else if (getCommand("adminDeleteCommands").includes(command)) {
 		if (!isMod(flags)) {
 			respond(getResponse("notMod"), params);
 			return;
@@ -212,7 +211,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		respond(getResponse("adminDeleteTasks"), params);
 		return;
-	} else if (commands.adminClearDoneCommands.includes(command)) {
+	} else if (getCommand("adminClearDoneCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -221,7 +220,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		clearAllDoneTasks();
 		respond(getResponse("clearedDone"), params);
 		return;
-	} else if (commands.adminClearAllCommands.includes(command)) {
+	} else if (getCommand("adminClearAllCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -230,7 +229,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		clearAll();
 		respond(getResponse("clearedAll"), params);
 		return;
-	} else if (commands.clearMyDoneCommands.includes(command)) {
+	} else if (getCommand("clearMyDoneCommands").includes(command)) {
 		let clearOwnDoneResponse = await clearOwnDoneTasks(user);
 
 		if (clearOwnDoneResponse.status !== 200) {
@@ -240,7 +239,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(getResponse("clearedMyDone"), params);
-	} else if (commands.adminClearNotStreamerCommands.includes(command)) {
+	} else if (getCommand("adminClearNotStreamerCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -249,7 +248,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		await clearAllExceptStreamer(configs.StreamerUsernames);
 		respond(getResponse("clearTasksExceptBroadcaster"), params);
-	} else if (commands.adminClearTasksCommands.includes(command)) {
+	} else if (getCommand("adminClearTasksCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -258,7 +257,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		await clearAllTasks();
 		respond(getResponse("clearedTasks"), params);
-	} else if (commands.listCommands.includes(command)) {
+	} else if (getCommand("listCommands").includes(command)) {
 		let listTaskResponse = await listTasks(user);
 
 		if (listTaskResponse.status !== 200) {
@@ -268,7 +267,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		respond(listTaskResponse.body.reply, params);
-	} else if (commands.checkCountCommands.includes(command)) {
+	} else if (getCommand("checkCountCommands").includes(command)) {
 		if (message === "") {
 			let count = await completedTasksCount(user);
 
@@ -284,8 +283,8 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 			return respond(getResponse("checkUserCount"), params);
 		}
-	} else if (commands.checkAllCountCommands.includes(command)) {
-		let count = getBoardTotalTaskCount();
+	} else if (getCommand("checkAllCountCommands").includes(command)) {
+		let count = await getBoardTotalTaskCount();
 
 		if (count === 0) {
 			respond(getResponse("noCountAll"), params);
@@ -295,7 +294,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.doneCount = count;
 
 		respond(getResponse("checkAllCount"), params);
-	} else if (commands.checkMyPointsCommands.includes(command)) {
+	} else if (getCommand("checkMyPointsCommands").includes(command)) {
 		if (message === "") {
 			let points = getUserPoints(user);
 
@@ -311,7 +310,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 			return respond(getResponse("checkUserPoints"), params);
 		}
-	} else if (commands.syncCountPointsCommands.includes(command)) {
+	} else if (getCommand("syncCountPointsCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -319,7 +318,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		await syncPointsToCount();
 		respond(getResponse("syncCountPoints"), params);
-	} else if (commands.addPointsCommands.includes(command)) {
+	} else if (getCommand("addPointsCommands").includes(command)) {
 		// !addpoints @user 100
 
 		if (!isMod(flags)) {
@@ -354,7 +353,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.pointCount = points;
 
 		respond(getResponse("addPoints"), params);
-	} else if (commands.reducePointsCommands.includes(command)) {
+	} else if (getCommand("reducePointsCommands").includes(command)) {
 		if (!isMod(flags)) {
 			respond(getResponse("notMod"), params);
 			return;
@@ -385,7 +384,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.pointCount = points;
 
 		respond(getResponse("reducePoints"), params);
-	} else if (commands.setUserPointsCommands.includes(command)) {
+	} else if (getCommand("setUserPointsCommands").includes(command)) {
 		if (!isMod(flags)) {
 			respond(getResponse("notMod"), params);
 			return;
@@ -418,7 +417,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.pointCount = points;
 
 		respond(getResponse("setUserPoints"), params);
-	} else if (commands.setUserTaskCountCommands.includes(commands)) {
+	} else if (getCommand("setUserTaskCountCommands").includes(commands)) {
 		if (!isMod(flags)) {
 			respond(getResponse("notMod"), params);
 			return;
@@ -451,7 +450,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.pointCount = count;
 
 		respond(getResponse("setUserTaskCount"), params);
-	} else if (commands.leaderboardCommands.includes(command)) {
+	} else if (getCommand("leaderboardCommands").includes(command)) {
 		let leaderboardResponse = await leaderboardTaskCount(5);
 
 		if (leaderboardResponse.status !== 200) {
@@ -462,7 +461,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		let leaderboard = leaderboardResponse.body.leaderboard;
 
 		respond(leaderboard, params);
-	} else if (commands.adminSetBoardCount.includes(command)) {
+	} else if (getCommand("adminSetBoardCountCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -479,7 +478,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		await setTotalCompleteCount(message);
 
 		respond(getResponse("setBoardCount"), params);
-	} else if (commands.adminResetBoardCount.includes(command)) {
+	} else if (getCommand("adminResetBoardCountCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -487,7 +486,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		await resetBoardCount();
 		respond(getResponse("clearedBoardCount"), params);
-	} else if (commands.adminResetUsersCount.includes(command)) {
+	} else if (getCommand("adminResetUsersCountCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -495,7 +494,35 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		await resetUsersCount();
 		respond(getResponse("clearedUsersCount"), params);
-	} else if (commands.helpCommands.includes(command)) {
+	} else if (getCommand("taskMasterCommands").includes(command)) {
+		if (!getSetting("enableTaskMaster")) {
+			return;
+		}
+
+		let champion = await getTaskMasterChampion();
+
+		if (champion === null) {
+			respond(getResponse("noTaskMaster"), params);
+			return;
+		}
+
+		params.taskMaster = champion.username;
+		params.taskMasterCount = champion.count;
+
+		respond(getResponse("taskMaster"), params);
+	} else if (getCommand("resetTaskMasterCommands").includes(command)) {
+		if (!getSetting("enableTaskMaster")) {
+			return;
+		}
+		if (!isStreamer(flags)) {
+			respond(getResponse("notStreamer"), params);
+			return;
+		}
+
+		await resetTaskMaster();
+
+		respond(getResponse("resetTaskMaster"), params);
+	} else if (getCommand("helpCommands").includes(command)) {
 		if (source.toLowerCase() === "youtube") {
 			respond(getResponse("YTHelp"), params);
 		} else {
@@ -508,7 +535,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		await transferLocalStorageToIndexedDB();
-	} else if (commands.adminBackupCommands.includes(command)) {
+	} else if (getCommand("adminBackupCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -516,7 +543,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		await backupStorage();
 
 		respond(getResponse("backupStorage"), params);
-	} else if (commands.adminLoadBackupCommands.includes(command)) {
+	} else if (getCommand("adminLoadBackupCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);
 			return;
@@ -530,7 +557,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 			return;
 		}
 
-		clearLocalStorage();
+		await clearLocalStorage();
 
 		respond(getResponse("clearLocalStorage"), params);
 	} else if (commands.additionalCommands[command]) {

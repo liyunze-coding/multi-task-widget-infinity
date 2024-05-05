@@ -20,12 +20,11 @@ DB structure:
 	- 
 */
 
-const settings = configs.settings;
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
-const taskSeparator = configs.settings.taskSeparator;
+const taskSeparator = getSetting("taskSeparator");
 
 const DBHandler = {
 	db: null,
@@ -111,21 +110,6 @@ const DBHandler = {
 			};
 		});
 	},
-	backup: function (data) {
-		return new Promise((resolve, reject) => {
-			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
-			let store = transaction.objectStore("tasks");
-			let request = store.add(data);
-
-			request.onsuccess = function (e) {
-				resolve(e.target.result);
-			};
-
-			request.onerror = function (e) {
-				reject("Error backing up data", e);
-			};
-		});
-	},
 };
 
 async function transferLocalStorageToIndexedDB() {
@@ -206,6 +190,98 @@ function hexToRgb(hex) {
 	return `${r}, ${g}, ${b}`;
 }
 
+async function createTaskMaster() {
+	if (await DBHandler.get("taskmaster")) {
+		return;
+	}
+
+	await DBHandler.set("taskmaster", {
+		users: {},
+		startDate: new Date(),
+		totalCompleteCount: 0,
+	});
+}
+
+/**
+ * adds a count to user for 'taskmaster'
+ *
+ * @param {string} username
+ */
+async function addCountToTaskMasterUser(username, count = 1) {
+	await createTaskMaster();
+	const taskmaster = await DBHandler.get("taskmaster");
+
+	if (!taskmaster.users[username.toLowerCase()]) {
+		taskmaster.users[username.toLowerCase()] = {
+			completeCount: 0,
+		};
+	}
+
+	taskmaster.users[username.toLowerCase()].completeCount += count;
+
+	await DBHandler.set("taskmaster", taskmaster);
+}
+
+/**
+ * gets the count of a user from 'taskmaster'
+ *
+ * @param {string} username
+ * @returns {number} the count of the user
+ */
+async function getUserTaskMasterCount(username) {
+	await createTaskMaster();
+	const taskmaster = await DBHandler.get("taskmaster");
+
+	if (!taskmaster.users) {
+		return 0;
+	}
+
+	if (!taskmaster.users[username.toLowerCase()]) {
+		return 0;
+	}
+
+	return taskmaster.users[username.toLowerCase()].completeCount;
+}
+
+async function getTaskMasterChampion() {
+	await createTaskMaster();
+	const taskmaster = await DBHandler.get("taskmaster");
+
+	if (!taskmaster) {
+		await createTaskMaster();
+	}
+
+	if (!taskmaster.users) {
+		return null;
+	}
+
+	let champion = {
+		username: "",
+		count: 0,
+	};
+
+	for (const user in taskmaster.users) {
+		if (taskmaster.users[user].completeCount > champion.count) {
+			champion.username = user;
+			champion.count = taskmaster.users[user].completeCount;
+		}
+	}
+
+	if (champion.count === 0) {
+		return null;
+	}
+
+	return champion;
+}
+
+async function resetTaskMaster() {
+	await DBHandler.set("taskmaster", {
+		users: {},
+		startDate: new Date(),
+		totalCompleteCount: 0,
+	});
+}
+
 /**
  * import styles from configs
  */
@@ -213,10 +289,10 @@ function importStyles() {
 	const styles = configs.styles;
 
 	// fonts
-	if (configs.settings.headerGoogleFont) {
+	if (getSetting("headerGoogleFont")) {
 		loadGoogleFont(styles.headerFontFamily);
 	}
-	if (configs.settings.taskGoogleFont) {
+	if (getSetting("taskGoogleFont")) {
 		loadGoogleFont(styles.taskFontFamily);
 	}
 
@@ -255,7 +331,7 @@ function importStyles() {
 		);
 	});
 
-	if (!settings.displayTaskCount) {
+	if (!getSetting("displayTaskCount")) {
 		document.querySelector(".task-count").style.display = "none";
 	}
 
@@ -361,7 +437,7 @@ async function calculatePoints(username) {
 
 	return (
 		counts.users[username.toLowerCase()].completeCount *
-		settings.pointsPerTask
+		getSetting("pointsPerTask")
 	);
 }
 
@@ -411,7 +487,7 @@ async function addDoneCount(username, value) {
 
 	// add to points
 	counts.users[username.toLowerCase()].points +=
-		value * settings.pointsPerTask;
+		value * getSetting("pointsPerTask");
 
 	await DBHandler.set("counts", counts);
 }
@@ -728,8 +804,8 @@ async function addTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 
 	if (taskExists) {
 		return createErrorResponse(
@@ -747,7 +823,9 @@ async function addTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			getResponse("noTaskAdded")
 		);
 	}
@@ -815,8 +893,8 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
 	if (taskExists) {
@@ -835,7 +913,9 @@ async function nowTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			getResponse("noTaskAdded")
 		);
 	}
@@ -891,8 +971,8 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit;
+		incompleteTasksCount(username) >= getSetting("limit") &&
+		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
 	if (taskExists) {
@@ -911,7 +991,9 @@ async function nowTask(username, userColor, task) {
 
 	if (userHasReachedTaskLimit) {
 		return createErrorResponse(
-			`@${username} has reached the limit of ${settings.limit} tasks`,
+			`@${username} has reached the limit of ${getSetting(
+				"limit"
+			)} tasks`,
 			getResponse("noTaskAdded")
 		);
 	}
@@ -1543,7 +1625,7 @@ async function markTaskDone(username, task) {
 					(t) =>
 						t.text.toLowerCase() === focusedTask.text.toLowerCase()
 				);
-			} else if (settings.automaticDoneIndex) {
+			} else if (getSetting("automaticDoneIndex")) {
 				// index is the first incomplete task
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
@@ -2308,7 +2390,7 @@ function cancelAnimation() {
 DBHandler.open()
 	.then(() => {
 		setupDB();
-		if (settings.testTasks) {
+		if (getSetting("testTasks")) {
 			resetDB();
 			tests();
 		}

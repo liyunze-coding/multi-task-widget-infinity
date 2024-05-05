@@ -15,6 +15,7 @@ const defaultConfigs = (function () {
 		headerGoogleFont: false, // true: use google font, false: use system font
 		taskGoogleFont: false, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
+		enableTaskMaster: false, // true or false
 	};
 
 	// styles
@@ -232,6 +233,8 @@ const defaultConfigs = (function () {
 			"!setusertask",
 		],
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
+		taskMasterCommands: ["!taskmaster", "!taskchampion"],
+		resetTaskMasterCommands: ["!resettaskmaster"],
 		adminDeleteCommands: ["!taskadel", "!adel", "!adelete", "!admindelete"],
 		adminClearNotStreamerCommands: [
 			"!clearnotstreamer",
@@ -246,9 +249,9 @@ const defaultConfigs = (function () {
 		],
 		adminClearAllCommands: ["!clearallnoregrets"],
 		adminClearTasksCommands: ["!cleartasks", "!clearalltasks", "!clearall"],
-		adminSetBoardCount: ["!setboardcount", "!setallcount"],
-		adminResetBoardCount: ["!resetboardcount", "!resetallcount"],
-		adminResetUsersCount: ["!resetuserscount"],
+		adminSetBoardCountCommands: ["!setboardcount", "!setallcount"],
+		adminResetBoardCountCommands: ["!resetboardcount", "!resetallcount"],
+		adminResetUsersCountCommands: ["!resetuserscount"],
 		adminBackupCommands: ["!backup", "!backupdata", "!setbackup"],
 		adminLoadBackupCommands: [
 			"!loadbackup",
@@ -337,6 +340,11 @@ const defaultConfigs = (function () {
 		noCountAll: "Looks like no one has completed a task yet {user}",
 		leaderboard: "Leaderboard: {leaderboard}",
 		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
+
+		// Grouped by taskmaster-related responses
+		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",
+		noTaskMaster: "No task master yet, {user}!",
+		resetTaskMaster: "Task Master has been reset, {user}!",
 
 		// backup-related responses
 		backupStorage: "Data has been backed up, {user}!",

@@ -15,6 +15,7 @@ const configs = (function () {
 		headerGoogleFont: false, // true: use google font, false: use system font
 		taskGoogleFont: false, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
+		enableTaskMaster: true, // true or false
 	};
 
 	// styles
@@ -232,6 +233,8 @@ const configs = (function () {
 			"!setusertask",
 		],
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
+		taskMasterCommands: ["!taskmaster", "!taskchampion"],
+		resetTaskMasterCommands: ["!resettaskmaster"],
 		adminDeleteCommands: ["!taskadel", "!adel", "!adelete", "!admindelete"],
 		adminClearNotStreamerCommands: [
 			"!clearnotstreamer",
@@ -244,18 +247,18 @@ const configs = (function () {
 			"!admincleardone",
 			"!cleardone",
 		],
-		adminClearLocalStorageCommands: ["!clearlocalstorage"],
 		adminClearAllCommands: ["!clearallnoregrets"],
 		adminClearTasksCommands: ["!cleartasks", "!clearalltasks", "!clearall"],
-		adminSetBoardCount: ["!setboardcount", "!setallcount"],
-		adminResetBoardCount: ["!resetboardcount", "!resetallcount"],
-		adminResetUsersCount: ["!resetuserscount"],
+		adminSetBoardCountCommands: ["!setboardcount", "!setallcount"],
+		adminResetBoardCountCommands: ["!resetboardcount", "!resetallcount"],
+		adminResetUsersCountCommands: ["!resetuserscount"],
 		adminBackupCommands: ["!backup", "!backupdata", "!setbackup"],
 		adminLoadBackupCommands: [
 			"!loadbackup",
 			"!loaddata",
 			"!loadbackupdata",
 		],
+		adminClearLocalStorageCommands: ["!clearlocalstorage"],
 		additionalCommands: {
 			"!botcred":
 				"{user} Ryan is the creator of this bot! You can find him on https://github.com/liyunze-coding or https://www.twitch.tv/RythonDev",
@@ -337,6 +340,11 @@ const configs = (function () {
 		noCountAll: "Looks like no one has completed a task yet {user}",
 		leaderboard: "Leaderboard: {leaderboard}",
 		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
+
+		// Grouped by taskmaster-related responses
+		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",
+		noTaskMaster: "No task master yet, {user}!",
+		resetTaskMaster: "Task Master has been reset, {user}!",
 
 		// backup-related responses
 		backupStorage: "Data has been backed up, {user}!",

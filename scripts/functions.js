@@ -10,3 +10,9 @@ function getCommand(commandName) {
 		configs.commands[commandName] ?? defaultConfigs.commands[commandName]
 	);
 }
+
+function getSetting(settingName) {
+	return (
+		configs.settings[settingName] ?? defaultConfigs.settings[settingName]
+	);
+}
