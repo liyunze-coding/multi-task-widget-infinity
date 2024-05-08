@@ -180,11 +180,11 @@ async function processCommand(user, command, message, flags, source, extra) {
 			// respond every 10 tasks
 			for (let i = 0; i < incompleteTasks.length; i += 10) {
 				let tasks = incompleteTasks.slice(i, i + 10);
-				params.tasks = tasks.join(" | ");
+				params.tasks = tasks
+					.join(" | ")
+					.replaceAll("{taskName}", getSetting("taskName"));
 
-				respond(`{user} {tasks}`, params);
-
-				await sleep(200);
+				await respond(`{user} {tasks}`, params);
 			}
 		} else {
 			let mentioned = message.replace("@", "");
@@ -204,9 +204,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 				let tasks = incompleteTasks.slice(i, i + 10);
 				params.tasks = tasks.join(" | ");
 
-				respond(`{user} {tasks}`, params);
-
-				await sleep(200);
+				await respond(`{user} {tasks}`, params);
 			}
 		}
 	} else if (getCommand("adminDeleteCommands").includes(command)) {

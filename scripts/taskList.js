@@ -2029,7 +2029,7 @@ async function checkTasks(name) {
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `incomplete tasks (${incompleteTasks.length}) : `;
+	let reply = `incomplete {taskName}s (${incompleteTasks.length}) : `;
 	let taskIndex;
 	for (let i = 0; i < incompleteTasks.length; i++) {
 		// get index of task by task name
