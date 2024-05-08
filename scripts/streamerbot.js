@@ -3,12 +3,14 @@ async function loadDataToDB(data) {
 
 	console.log(data);
 	// Check if data[0] or data[1] has "users" property
-	if (data[0].users) {
-		await DBHandler.set("counts", data[0]);
-		await DBHandler.set("tasks", data[1]);
-	} else {
-		await DBHandler.set("counts", data[1]);
-		await DBHandler.set("tasks", data[0]);
+	for (let element of data) {
+		if (element.taskMasterCompleteCount !== undefined) {
+			await DBHandler.set("taskmaster", element);
+		} else if (element.totalCompleteCount !== undefined) {
+			await DBHandler.set("counts", element);
+		} else {
+			await DBHandler.set("tasks", element);
+		}
 	}
 	await renderTaskListToDOM();
 	respond(getResponse("loadBackup"), params);

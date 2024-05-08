@@ -27,6 +27,9 @@ async function respond(template, params = {}) {
 		template = template.replace(`{${key}}`, params[key]);
 	});
 
+	// capitalize first letter of template
+	template = template.charAt(0).toUpperCase() + template.slice(1);
+
 	const source = params["source name"].toLowerCase();
 
 	if (source === "youtube") {
