@@ -48,7 +48,7 @@ const configs = (function () {
 		headerFontWeight: "bold", // normal or bold or number
 		headerFontColor: "#fff", // hex or name
 
-		taskCountMarginRight: "175px", // px
+		taskCountMarginRight: "0px", // px
 
 		// body
 		bodyBackgroundColor: "#fff", // hex only

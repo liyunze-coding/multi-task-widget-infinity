@@ -17,7 +17,7 @@
   --header-font-family: sans-serif;
   --header-font-color: white;
   --header-font-weight: bold;
-  --task-count-margin-right: 10px;
+  --task-count-margin-right: 0px;
   --body-background-color: rgba(0, 0, 0, 0.7);
   --body-border-width: 5px;
   --body-border-color: white;
