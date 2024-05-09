@@ -5,6 +5,7 @@ const defaultConfigs = (function () {
 		enableLimit: false, // true or false
 		limit: 10, // integer
 		automaticDoneIndex: false, // true or false - Automatically assume first unfinished task is complete
+		taskName: "task", // string
 		pointsName: "points", // string
 		pointsPerTask: 10, // integer
 		taskSeparator: [";", ","], // array of strings
@@ -302,16 +303,18 @@ const defaultConfigs = (function () {
 
 	const responses = {
 		// Responses related to task addition
-		taskAdded: 'The task(s) "{task}" has been added, {user}!',
+		taskAdded: 'The {taskName}(s) "{task}" has been added, {user}!',
 		noTaskAdded:
-			"Looks like you already hit the limit of incomplete tasks, {user}",
-		noTaskContent: "Try using !task the-task-you-are-working-on {user}",
+			"Looks like you already hit the limit of incomplete {taskName}s, {user}",
+		noTaskContent:
+			"Try using !task the-{taskName}-you-are-working-on {user}",
 		duplicateTask:
-			"Looks like you already have the task '{message}' up there {user}!",
+			"Looks like you already have the {taskName} '{message}' up there {user}!",
 		taskEdited:
-			'Task "{originalTask}" has been edited to "{task}" successfully, {user}',
+			'{taskName} "{originalTask}" has been edited to "{task}" successfully, {user}',
 		noTaskEdit: "Try doing !edit [index] [new task] {user}",
-		nowTask: 'Task "{task}" is now the task you are working on, {user}!',
+		nowTask:
+			'{taskName} "{task}" is now the task you are working on, {user}!',
 
 		// Grouped by task progression responses
 		taskNext:
@@ -321,31 +324,36 @@ const defaultConfigs = (function () {
 			"Unable to perform command with multiple incomplete tasks, {user}!",
 
 		// Grouped by task deletion responses
-		clearedMyDone: "All of your completed tasks have been cleared, {user}!",
-		taskDeleted: 'Task(s) "{task}" has been deleted successfully, {user}',
+		clearedMyDone:
+			"All of your completed {taskName}s have been cleared, {user}!",
+		taskDeleted:
+			'{taskName}(s) "{task}" has been deleted successfully, {user}',
 		specifyTaskIndex:
-			"Try specifying the index of the incomplete task(s) {user}",
+			"Try specifying the index of the incomplete {taskName}(s) {user}",
 		clearTasksExceptBroadcaster:
-			"All tasks have been cleared except for the streamer's, {user}!",
-		clearedTasks: "All tasks have been cleared, {user}!",
-		adminDeleteTasks: "All of {mentioned}'s tasks have been deleted",
-		clearedAll: "All tasks and points have been cleared, {user}!",
+			"All {taskName}s have been cleared except for the streamer's, {user}!",
+		clearedTasks: "All {taskName}s have been cleared, {user}!",
+		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
+		clearedAll: "All {taskName}s and points have been cleared, {user}!",
 
 		// Grouped by task completion responses
 		taskFinished:
-			'Good job on finishing the task(s) "{task}", {user}! You have earned {pointCount} {pointName} and completed {doneCount} task(s) so far!',
+			'Good job on finishing the {taskName}(s) "{task}", {user}! You have earned {pointCount} {pointName} and completed {doneCount} {taskName}(s) so far!',
 		allTasksFinished:
-			"Good job on finishing all your tasks, {user}! You have completed {doneCount} task(s) so far!",
-		taskUnfinished: 'Task(s) "{task}" has been unmarked as done, {user}!',
-		taskAlreadyFinished: "Looks like you already finished that task {user}",
+			"Good job on finishing all your {taskName}s, {user}! You have completed {doneCount} {taskName}(s) so far!",
+		taskUnfinished:
+			'{taskName}(s) "{task}" has been unmarked as done, {user}!',
+		taskAlreadyFinished:
+			"Looks like you already finished that {taskName} {user}",
 
 		// Grouped by task focus responses
-		clearFocused: "Task has been unfocused, {user}!",
-		noFocusedTask: "Looks like you don't have a focused task {user}!",
+		clearFocused: "{taskName} has been unfocused, {user}!",
+		noFocusedTask: "Looks like you don't have a focused {taskName} {user}!",
 		alreadyFocusedTask:
 			"Looks like you already have that task set to focus {user}!",
 		onlyOneFocus: "You can only focus one task at a time {user}!",
-		specifyFocusTask: "Try specifying an incomplete task to focus {user}!",
+		specifyFocusTask:
+			"Try specifying an incomplete {taskName} to focus {user}!",
 		taskFocused: 'Task "{task}" has been focused, {user}!',
 
 		// Grouped by task existence responses
@@ -363,14 +371,14 @@ const defaultConfigs = (function () {
 
 		// Grouped by count-related responses
 		checkYourCount:
-			"You have completed {doneCount} task(s) so far, {user}!",
+			"You have completed {doneCount} {taskName}(s) so far, {user}!",
 		checkUserCount:
-			"{mentioned} has completed {doneCount} task(s) so far, {user}!",
+			"{mentioned} has completed {doneCount} {taskName}(s) so far, {user}!",
 		checkAllCount:
-			"Everyone has completed {doneCount} task(s) so far, {user}!",
-		noCountAll: "Looks like no one has completed a task yet {user}",
+			"Everyone has completed {doneCount} {taskName}(s) so far, {user}!",
+		noCountAll: "Looks like no one has completed a {taskName} yet {user}",
 		leaderboard: "Leaderboard: {leaderboard}",
-		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
+		setUserTaskCount: "{mentioned} now has {taskCount} {taskName}s!",
 
 		// Grouped by taskmaster-related responses
 		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",

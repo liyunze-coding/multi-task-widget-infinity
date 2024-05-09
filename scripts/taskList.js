@@ -16,8 +16,7 @@ DB structure:
 - taskmaster
 	- users
 		- [username]:
-			- completeCount
-	- totalCompleteCount
+			- taskMasterCompleteCount
 	- startDate
 */
 
@@ -27,6 +26,11 @@ const responses = configs.responses;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = getSetting("taskSeparator");
+
+var taskListMemory = {
+	doneTaskCount: 0,
+	totalTaskCount: 0,
+};
 
 const DBHandler = {
 	db: null,
@@ -115,9 +119,6 @@ const DBHandler = {
 };
 
 async function transferLocalStorageToIndexedDB() {
-	// Open the database
-	await DBHandler.open();
-
 	// Get all keys in localStorage
 	let keys = Object.keys(localStorage);
 
@@ -200,20 +201,17 @@ function hexToRgb(hex) {
  *
  * @param {string} username
  */
-async function addCountToTaskMasterUser(username, count = 1) {
-	const taskmaster = (await DBHandler.get("taskmaster")) || {
-		users: {},
-		startDate: new Date(),
-		totalCompleteCount: 0,
-	};
+async function addCountToTaskMasterUser(username, count) {
+	const taskmaster = await DBHandler.get("taskmaster");
 
 	if (!taskmaster.users[username.toLowerCase()]) {
 		taskmaster.users[username.toLowerCase()] = {
-			completeCount: 0,
+			taskMasterCompleteCount: 0,
 		};
 	}
 
-	taskmaster.users[username.toLowerCase()].completeCount += count;
+	taskmaster.users[username.toLowerCase()].taskMasterCompleteCount +=
+		parseInt(count);
 
 	await DBHandler.set("taskmaster", taskmaster);
 }
@@ -231,11 +229,15 @@ async function getUserTaskMasterCount(username) {
 		return 0;
 	}
 
-	return taskmaster.users[username.toLowerCase()].completeCount;
+	return taskmaster.users[username.toLowerCase()].taskMasterCompleteCount;
 }
 
 async function getTaskMasterChampion() {
 	const taskmaster = await DBHandler.get("taskmaster");
+
+	if (!taskmaster.users) {
+		return null;
+	}
 
 	let champion = {
 		username: "",
@@ -243,9 +245,12 @@ async function getTaskMasterChampion() {
 	};
 
 	for (const user in taskmaster.users) {
-		if (taskmaster.users[user].completeCount > champion.count) {
+		if (
+			user.toLowerCase() === auth.channel &&
+			taskmaster.users[user].taskMasterCompleteCount > champion.count
+		) {
 			champion.username = user;
-			champion.count = taskmaster.users[user].completeCount;
+			champion.count = taskmaster.users[user].taskMasterCompleteCount;
 		}
 	}
 
@@ -351,19 +356,36 @@ function importStyles() {
  */
 async function resetDB() {
 	await DBHandler.clear();
-	setupDB();
+	await setupDB();
 }
 
 /**
- * Sets up the local storage database.
+ * Sets up the database with the default values if it does not exist
  */
 async function setupDB() {
-	if (!(await DBHandler.get("tasks"))) {
-		await DBHandler.set("tasks", {});
+	const keys = ["tasks", "counts", "taskmaster"];
+	const defaultValues = [
+		{ ID: "tasks" },
+		{ ID: "counts", users: {} },
+		{
+			ID: "taskmaster",
+			users: {},
+			startDate: new Date(),
+			taskMasterCompleteCount: 0,
+		},
+	];
+
+	for (let i = 0; i < keys.length; i++) {
+		let value = await DBHandler.get(keys[i]);
+		if (!value) {
+			value = defaultValues[i];
+		} else if (!value.ID) {
+			value.ID = keys[i];
+		}
+		await DBHandler.set(keys[i], value);
 	}
-	if (!(await DBHandler.get("counts"))) {
-		await DBHandler.set("counts", { users: {} });
-	}
+
+	return;
 }
 
 /**
@@ -645,15 +667,15 @@ async function setUserTaskCount(username, value) {
 
 	if (!counts.users[username.toLowerCase()]) {
 		counts.users[username.toLowerCase()] = {
-			points: 0,
+			completeCount: 0,
 		};
 	}
 
-	if (!counts.users[username.toLowerCase()].points) {
-		counts.users[username.toLowerCase()].points = 0;
+	if (!counts.users[username.toLowerCase()].completeCount) {
+		counts.users[username.toLowerCase()].completeCount = 0;
 	}
 
-	counts.users[username.toLowerCase()].taskCount = parseInt(value);
+	counts.users[username.toLowerCase()].completeCount = parseInt(value);
 
 	await DBHandler.set("counts", counts);
 
@@ -831,7 +853,7 @@ async function addTask(username, userColor, task) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -919,7 +941,7 @@ async function nowTask(username, userColor, task) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -997,7 +1019,7 @@ async function nowTask(username, userColor, task) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1092,7 +1114,7 @@ async function focusTask(username, task) {
 	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1135,7 +1157,7 @@ async function unfocusTask(username) {
 	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1238,7 +1260,7 @@ async function removeTask(username, task) {
 
 		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
-			renderTaskListToDOM();
+			await renderTaskListToDOM();
 		}
 		return {
 			status: 200,
@@ -1283,7 +1305,7 @@ async function removeTask(username, task) {
 		tasks[username].todos.splice(index, 1);
 		taskListMemory.totalTaskCount--;
 		await DBHandler.set("tasks", tasks);
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 		return {
 			status: 200,
 			body: {
@@ -1436,6 +1458,13 @@ function isInt(value) {
 	);
 }
 
+function clearMemory() {
+	taskListMemory = {
+		doneTaskCount: 0,
+		totalTaskCount: 0,
+	};
+}
+
 /**
  * Clears all completed tasks for a given user. If the tasks are successfully cleared, the function returns an object with a status of 200. If the tasks are not cleared due to the user having no tasks, the function returns an object with a status indicating the error and an error message.
  *
@@ -1462,7 +1491,7 @@ async function clearOwnDoneTasks(username) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1578,7 +1607,7 @@ async function markTaskDone(username, task) {
 
 		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
-			renderTaskListToDOM();
+			await renderTaskListToDOM();
 		}
 		return {
 			status: 200,
@@ -1649,7 +1678,7 @@ async function markTaskDone(username, task) {
 
 		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
-			renderTaskListToDOM();
+			await renderTaskListToDOM();
 		}
 		return {
 			status: 200,
@@ -1691,7 +1720,7 @@ async function markAllTasksAsDone(username) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1779,7 +1808,7 @@ async function markTaskUndone(username, task) {
 
 		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
-			renderTaskListToDOM();
+			await renderTaskListToDOM();
 		}
 
 		return {
@@ -1825,7 +1854,7 @@ async function markTaskUndone(username, task) {
 			await DBHandler.set("tasks", tasks);
 
 			if (!scrolling) {
-				renderTaskListToDOM();
+				await renderTaskListToDOM();
 			}
 			return {
 				status: 200,
@@ -1841,7 +1870,7 @@ async function markTaskUndone(username, task) {
 			await DBHandler.set("tasks", tasks);
 
 			if (!scrolling) {
-				renderTaskListToDOM();
+				await renderTaskListToDOM();
 			}
 			return {
 				status: 200,
@@ -1933,7 +1962,7 @@ async function editTask(username, message) {
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -1964,7 +1993,7 @@ async function checkTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1974,7 +2003,7 @@ async function checkTasks(username) {
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `@${username} incomplete tasks (${incompleteTasks.length}) : `;
+	let reply = `incomplete {taskName}(s) (${incompleteTasks.length}) : `;
 	let taskIndex;
 	for (let i = 0; i < incompleteTasks.length; i++) {
 		// get index of task by task name
@@ -2089,7 +2118,7 @@ async function clearUserTasks(username) {
 	await DBHandler.set("tasks", tasks);
 
 	if (!scrolling) {
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	}
 
 	return {
@@ -2109,7 +2138,7 @@ async function clearAllDoneTasks() {
 	}
 	cancelAnimation();
 	await DBHandler.set("tasks", tasks);
-	renderTaskListToDOM();
+	await renderTaskListToDOM();
 
 	return {
 		status: 200,
@@ -2119,18 +2148,18 @@ async function clearAllDoneTasks() {
 async function clearAllTasks() {
 	await DBHandler.set("tasks", {});
 	cancelAnimation();
-	renderTaskListToDOM();
+	await renderTaskListToDOM();
 
 	return {
 		status: 200,
 	};
 }
 
-function clearAll() {
+async function clearAll() {
 	resetDB();
 	cancelAnimation();
 	checkToAnimate();
-	renderTaskListToDOM();
+	await renderTaskListToDOM();
 
 	return {
 		status: 200,
@@ -2158,21 +2187,16 @@ async function clearAllExceptStreamer(streamerUsername) {
 
 	await DBHandler.set("tasks", tasks);
 
-	clearAllDoneTasks();
+	await clearAllDoneTasks();
 
 	cancelAnimation();
 
-	renderTaskListToDOM();
+	await renderTaskListToDOM();
 
 	return {
 		status: 200,
 	};
 }
-
-const taskListMemory = {
-	doneTaskCount: 0,
-	totalTaskCount: 0,
-};
 
 async function renderTaskListToDOM() {
 	const tasks = await DBHandler.get("tasks");
@@ -2186,7 +2210,11 @@ async function renderTaskListToDOM() {
 		let completedTasksCount = 0;
 
 		for (const user in tasks) {
+			if (user === "ID") continue;
+			if (!tasks[user].todos) continue;
+
 			const userTasks = tasks[user];
+
 			if (userTasks.todos.length === 0) {
 				// remove user from tasks
 				delete tasks[user];
@@ -2354,9 +2382,9 @@ function addAnimationListeners() {
 	}
 }
 
-function animationFinished() {
+async function animationFinished() {
 	scrolling = false;
-	renderTaskListToDOM();
+	await renderTaskListToDOM();
 	checkToAnimate();
 }
 
@@ -2371,14 +2399,14 @@ function cancelAnimation() {
 }
 
 DBHandler.open()
-	.then(() => {
-		setupDB();
+	.then(async () => {
+		await setupDB();
 		if (getSetting("testTasks")) {
-			resetDB();
-			tests();
+			await resetDB();
+			await tests();
 		}
 		importStyles();
-		renderTaskListToDOM();
+		await renderTaskListToDOM();
 	})
 	.catch((error) => {
 		console.error("Error opening database:", error);

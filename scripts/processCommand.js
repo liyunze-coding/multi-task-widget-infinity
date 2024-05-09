@@ -3,6 +3,7 @@ async function processCommand(user, command, message, flags, extra) {
 		user: user,
 		message: message,
 		pointName: getSetting("pointsName"),
+		taskName: getSetting("taskName"),
 	};
 
 	if (getCommand("addTaskCommands").includes(command)) {
@@ -172,7 +173,20 @@ async function processCommand(user, command, message, flags, extra) {
 				return;
 			}
 
-			return respond(checkRequest.body.reply, params);
+			// array of incomplete tasks
+			let incompleteTasks = checkRequest.body.reply.split(" | ");
+
+			// respond every 10 tasks
+			for (let i = 0; i < incompleteTasks.length; i += 10) {
+				let tasks = incompleteTasks.slice(i, i + 10);
+				params.tasks = tasks
+					.join(" | ")
+					.replaceAll("{taskName}", getSetting("taskName"));
+
+				await respond(`{user} {tasks}`, params);
+			}
+
+			// return respond(checkRequest.body.reply, params);
 		} else {
 			let mentioned = message.replace("@", "");
 			let checkRequest = await checkTasks(mentioned);
@@ -183,7 +197,16 @@ async function processCommand(user, command, message, flags, extra) {
 
 				return;
 			}
-			return respond(checkRequest.body.reply, params);
+			// array of incomplete tasks
+			let incompleteTasks = checkRequest.body.reply.split(" | ");
+
+			// respond every 10 tasks
+			for (let i = 0; i < incompleteTasks.length; i += 10) {
+				let tasks = incompleteTasks.slice(i, i + 10);
+				params.tasks = tasks.join(" | ");
+
+				await respond(`{user} {tasks}`, params);
+			}
 		}
 	} else if (getCommand("adminDeleteCommands").includes(command)) {
 		if (!isMod(flags)) {
@@ -215,7 +238,7 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		clearAllDoneTasks();
+		await clearAllDoneTasks();
 		respond(getResponse("clearedDone"), params);
 		return;
 	} else if (getCommand("adminClearAllCommands").includes(command)) {
@@ -224,7 +247,7 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		clearAll();
+		await clearAll();
 		respond(getResponse("clearedAll"), params);
 		return;
 	} else if (getCommand("clearMyDoneCommands").includes(command)) {
@@ -282,7 +305,7 @@ async function processCommand(user, command, message, flags, extra) {
 			return respond(getResponse("checkUserCount"), params);
 		}
 	} else if (getCommand("checkAllCountCommands").includes(command)) {
-		let count = getBoardTotalTaskCount();
+		let count = await getBoardTotalTaskCount();
 
 		if (count === 0) {
 			respond(getResponse("noCountAll"), params);
@@ -440,16 +463,19 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		points = parseInt(points);
+		let setUserTaskCountResponse = await setUserTaskCount(mentioned, count);
 
-		await setUserTaskCount(mentioned, count);
+		if (setUserTaskCountResponse.status !== 200) {
+			respond(setUserTaskCountResponse.body.message, params);
+			return;
+		}
 
 		params.mentioned = mentioned;
-		params.pointCount = count;
+		params.taskCount = count;
 
-		respond(getResponse("setUserTaskCount"), params);
+		respond(setUserTaskCountResponse.body.message, params);
 	} else if (getCommand("leaderboardCommands").includes(command)) {
-		let leaderboardResponse = leaderboardTaskCount(5);
+		let leaderboardResponse = await leaderboardTaskCount(5);
 
 		if (leaderboardResponse.status !== 200) {
 			respond(leaderboardResponse.body.error, params);
