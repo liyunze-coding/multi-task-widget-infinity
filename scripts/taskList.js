@@ -259,8 +259,15 @@ async function getTaskMasterChampion() {
 		count: 0,
 	};
 
+	const streamer = configs.streamerUsernames.map((username) =>
+		username.toLowerCase()
+	);
+
 	for (const user in taskmaster.users) {
-		if (taskmaster.users[user].taskMasterCompleteCount > champion.count) {
+		if (
+			!streamer.includes(user.toLowerCase()) &&
+			taskmaster.users[user].taskMasterCompleteCount > champion.count
+		) {
 			champion.username = user;
 			champion.count = taskmaster.users[user].taskMasterCompleteCount;
 		}
