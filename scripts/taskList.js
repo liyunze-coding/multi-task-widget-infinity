@@ -1368,67 +1368,7 @@ async function nextTask(username, task) {
 
 		// mark task as done
 		tasks[username].todos[index].done = true;
-		addDoneCount(username, 1);
-
-		// add new task
-		tasks[username].todos.push({ text: task, done: false, focus: false });
-		taskListMemory.totalTaskCount++;
-
-		await DBHandler.set("tasks", tasks);
-
-		return {
-			status: 200,
-			body: {
-				oldTask: oldTask,
-				newTask: task,
-			},
-		};
-	}
-}
-
-async function nextTask(username, task) {
-	const tasks = await DBHandler.get("tasks");
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
-			},
-		};
-	}
-
-	if (task === "") {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} empty task`,
-				error: responses.nextNoContent,
-			},
-		};
-	}
-
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-
-	if (incompleteTasks.length !== 1) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has more than one incomplete task`,
-				error: responses.taskNextFailed,
-			},
-		};
-	} else {
-		// mark the incomplete task as complete, then add a new task "task"
-
-		// find index of incomplete task
-		let index = tasks[username].todos.findIndex((t) => !t.done);
-
-		let oldTask = tasks[username].todos[index].text;
-
-		// mark task as done
-		tasks[username].todos[index].done = true;
-		addDoneCount(username, 1);
+		await addDoneCount(username, 1);
 
 		// add new task
 		tasks[username].todos.push({ text: task, done: false, focus: false });
@@ -1571,7 +1511,7 @@ async function markTaskDone(username, task) {
 					index = tasks[username].todos.findIndex((t) => !t.done);
 					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
-					addDoneCount(username, 1);
+					await addDoneCount(username, 1);
 				} else {
 					tasksFailedToComplete.push(t);
 					continue;
@@ -1586,12 +1526,12 @@ async function markTaskDone(username, task) {
 				} else {
 					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
-					addDoneCount(username, 1);
+					await addDoneCount(username, 1);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
 				// increment count
-				addDoneCount(username, 1);
+				await addDoneCount(username, 1);
 			}
 			tasks[username].todos[index].done = true;
 			tasks[username].todos[index].focus = false;
@@ -1676,7 +1616,7 @@ async function markTaskDone(username, task) {
 
 		task = tasks[username].todos[index].text;
 		tasks[username].todos[index].done = true;
-		addDoneCount(username, 1);
+		await addDoneCount(username, 1);
 
 		await DBHandler.set("tasks", tasks);
 		if (!scrolling) {
@@ -1715,7 +1655,7 @@ async function markAllTasksAsDone(username) {
 
 	for (const task of tasks[username].todos) {
 		if (!task.done) {
-			addDoneCount(username, 1);
+			await addDoneCount(username, 1);
 		}
 		task.done = true;
 	}
@@ -1794,7 +1734,7 @@ async function markTaskUndone(username, task) {
 			} else {
 				tasksMarkedUndone.push(tasks[username].todos[index].text);
 			}
-			addDoneCount(username, -1);
+			await addDoneCount(username, -1);
 			tasks[username].todos[index].done = false;
 		}
 
@@ -1851,7 +1791,7 @@ async function markTaskUndone(username, task) {
 			}
 
 			tasks[username].todos[index].done = false;
-			addDoneCount(username, -1);
+			await addDoneCount(username, -1);
 
 			await DBHandler.set("tasks", tasks);
 
@@ -1867,7 +1807,7 @@ async function markTaskUndone(username, task) {
 			};
 		} else {
 			tasks[username].todos[index].done = false;
-			addDoneCount(username, -1);
+			await addDoneCount(username, -1);
 
 			await DBHandler.set("tasks", tasks);
 
@@ -2182,10 +2122,9 @@ async function clearAllExceptStreamer(streamerUsername) {
 	// clear all tasks except for broadcasters
 	const tasks = await DBHandler.get("tasks");
 
-	// streamerusernames lowercased
-
 	for (const user in tasks) {
-		if (user.toLowerCase() !== streamerUsername.toLowerCase()) {
+		if (user.toLowerCase() === "id") continue;
+		if (user.toLowerCase() !== auth.channel.toLowerCase()) {
 			tasks[user].todos = [];
 		}
 	}
@@ -2215,7 +2154,7 @@ async function renderTaskListToDOM() {
 		let completedTasksCount = 0;
 
 		for (const user in tasks) {
-			if (user === "ID") continue;
+			if (user.toLowerCase() === "id") continue;
 			if (!tasks[user].todos) continue;
 
 			const userTasks = tasks[user];

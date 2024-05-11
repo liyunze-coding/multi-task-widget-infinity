@@ -1,3 +1,5 @@
+var commands = configs.commands;
+
 async function processCommand(user, command, message, flags, extra) {
 	params = {
 		user: user,
