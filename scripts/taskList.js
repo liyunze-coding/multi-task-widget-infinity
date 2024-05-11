@@ -2167,6 +2167,8 @@ async function clearUserTasks(username) {
 async function clearAllDoneTasks() {
 	const tasks = await DBHandler.get("tasks");
 	for (const user in tasks) {
+		if (!tasks[user].todos) continue;
+		if (user.toLowerCase() === "ID") continue;
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
 	cancelAnimation();

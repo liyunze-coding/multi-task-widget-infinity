@@ -301,7 +301,7 @@ const defaultConfigs = (function () {
 			"All {taskName}s have been cleared except for the streamer's, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
 		clearedDone: "All completed {taskName}s have been cleared, {user}!",
-		clearedtasks: "All {taskName}s have been cleared, {user}!",
+		clearedTasks: "All {taskName}s have been cleared, {user}!",
 		clearedAll: "All {taskName}s and counts have been cleared, {user}!",
 		clearLocalStorage: "Local storage has been cleared, {user}!",
 

@@ -88,8 +88,18 @@ async function processCommand(user, command, message, flags, source, extra) {
 			finishRequest.body.markedTasksCount * getSetting("pointsPerTask");
 
 		if (finishRequest.body.failedTasks !== "") {
-			finishedResponse += ` | Failed to finish task(s): "${finishRequest.body.failedTasks}"`;
+			finishedResponse += ` | Failed to finish {taskName}(s): "${finishRequest.body.failedTasks}"`;
 		}
+
+		finishedResponse = finishedResponse.replaceAll(
+			"{pointName}",
+			getSetting("pointsName")
+		);
+
+		finishedResponse = finishedResponse.replaceAll(
+			"{taskName}",
+			getSetting("taskName")
+		);
 
 		respond(finishedResponse, params);
 	} else if (getCommand("unfinishTaskCommands").includes(command)) {
@@ -184,27 +194,42 @@ async function processCommand(user, command, message, flags, source, extra) {
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
 
-				await respond(`{user} {tasks}`, params);
+				var checkingUser = user;
+				params.checkingUser = checkingUser;
+
+				await respond(`{checkingUser} {tasks}`, params);
+				await sleep(200);
 			}
 		} else {
 			let mentioned = message.replace("@", "");
+
+			if (mentioned.toLowerCase() === "id") {
+				await respond(getResponse("noTaskA"), params);
+				return;
+			}
+
 			let checkRequest = await checkTasks(mentioned);
 
 			if (checkRequest.status !== 200) {
 				// no tasks
-				respond(checkRequest.body.error, params);
+				respond(getResponse("noTaskA"), params);
 
 				return;
 			}
-			// array of incomplete tasks
-			let incompleteTasks = checkRequest.body.reply.split(" | ");
 
 			// respond every 10 tasks
 			for (let i = 0; i < incompleteTasks.length; i += 10) {
 				let tasks = incompleteTasks.slice(i, i + 10);
-				params.tasks = tasks.join(" | ");
+				params.tasks = tasks
+					.join(" | ")
+					.replaceAll("{taskName}", getSetting("taskName"));
 
-				await respond(`{user} {tasks}`, params);
+				var checkingUser = user;
+
+				params.checkingUser = checkingUser;
+
+				await respond(`{checkingUser} {tasks}`, params);
+				await sleep(200);
 			}
 		}
 	} else if (getCommand("adminDeleteCommands").includes(command)) {
