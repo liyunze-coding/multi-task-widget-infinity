@@ -335,6 +335,7 @@ const defaultConfigs = (function () {
 		clearedTasks: "All {taskName}s have been cleared, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
 		clearedAll: "All {taskName}s and points have been cleared, {user}!",
+		clearedDone: "All completed {taskName}s have been cleared, {user}!",
 
 		// Grouped by task completion responses
 		taskFinished:

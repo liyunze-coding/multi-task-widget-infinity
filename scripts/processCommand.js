@@ -80,15 +80,24 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		let finishedResponse = getResponse("taskFinished");
-
 		params.task = finishRequest.body.markedTasks;
 		params.doneCount = await completedTasksCount(user);
 		params.pointCount =
 			finishRequest.body.markedTasksCount * getSetting("pointsPerTask");
 
 		if (finishRequest.body.failedTasks !== "") {
-			finishedResponse += ` | Failed to finish task(s): "${finishRequest.body.failedTasks}"`;
+			finishedResponse += ` | Failed to finish {taskName}(s): "${finishRequest.body.failedTasks}"`;
 		}
+
+		finishedResponse = finishedResponse.replaceAll(
+			"{pointName}",
+			getSetting("pointsName")
+		);
+
+		finishedResponse = finishedResponse.replaceAll(
+			"{taskName}",
+			getSetting("taskName")
+		);
 
 		respond(finishedResponse, params);
 	} else if (getCommand("unfinishTaskCommands").includes(command)) {
@@ -165,6 +174,7 @@ async function processCommand(user, command, message, flags, extra) {
 
 		respond(unfocusedResponse, params);
 	} else if (getCommand("checkCommands").includes(command)) {
+		var checkingUser = user;
 		if (message === "") {
 			let checkRequest = await checkTasks(user);
 			if (checkRequest.status !== 200) {
@@ -183,7 +193,10 @@ async function processCommand(user, command, message, flags, extra) {
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
 
-				await respond(`{user} {tasks}`, params);
+				params.checkingUser = checkingUser;
+
+				await respond(`{checkingUser} {tasks}`, params);
+				await sleep(200);
 			}
 
 			// return respond(checkRequest.body.reply, params);
@@ -203,9 +216,14 @@ async function processCommand(user, command, message, flags, extra) {
 			// respond every 10 tasks
 			for (let i = 0; i < incompleteTasks.length; i += 10) {
 				let tasks = incompleteTasks.slice(i, i + 10);
-				params.tasks = tasks.join(" | ");
+				params.tasks = tasks
+					.join(" | ")
+					.replaceAll("{taskName}", getSetting("taskName"));
 
-				await respond(`{user} {tasks}`, params);
+				params.checkingUser = checkingUser;
+
+				await respond(`{checkingUser} {tasks}`, params);
+				await sleep(200);
 			}
 		}
 	} else if (getCommand("adminDeleteCommands").includes(command)) {
@@ -484,7 +502,7 @@ async function processCommand(user, command, message, flags, extra) {
 
 		let leaderboard = leaderboardResponse.body.leaderboard;
 
-		respond(leaderboard, params);
+		await respond(leaderboard, params);
 	} else if (getCommand("adminSetBoardCountCommands").includes(command)) {
 		if (!isStreamer(flags)) {
 			respond(getResponse("notStreamer"), params);

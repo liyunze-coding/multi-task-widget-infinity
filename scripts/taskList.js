@@ -721,9 +721,11 @@ async function leaderboardTaskCount(limit) {
 	let leaderboardArray = [];
 
 	for (const user in counts.users) {
+		let userTaskCount = await completedTasksCount(user);
+
 		leaderboardArray.push({
 			username: user,
-			taskCount: getUserTotalTaskCount(user),
+			taskCount: userTaskCount,
 		});
 	}
 
@@ -2134,6 +2136,8 @@ async function clearUserTasks(username) {
 async function clearAllDoneTasks() {
 	const tasks = await DBHandler.get("tasks");
 	for (const user in tasks) {
+		if (!tasks[user].todos) continue;
+		if (user.toLowerCase() === "id") continue;
 		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
 	}
 	cancelAnimation();
@@ -2147,6 +2151,7 @@ async function clearAllDoneTasks() {
 
 async function clearAllTasks() {
 	await DBHandler.set("tasks", {});
+	await setupDB();
 	cancelAnimation();
 	await renderTaskListToDOM();
 
@@ -2156,7 +2161,7 @@ async function clearAllTasks() {
 }
 
 async function clearAll() {
-	resetDB();
+	await resetDB();
 	cancelAnimation();
 	checkToAnimate();
 	await renderTaskListToDOM();
