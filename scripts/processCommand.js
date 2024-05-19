@@ -1,4 +1,6 @@
 var commands = configs.commands;
+var openQuote = getSetting("openQuote");
+var closeQuote = getSetting("closeQuote");
 
 async function processCommand(user, command, message, flags, source, extra) {
 	params = {
@@ -18,7 +20,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 
 		let addedResponse = getResponse("taskAdded");
-		params.task = addRequest.body.task;
+		params.task = `${openQuote}${addRequest.body.task}${closeQuote}`;
 
 		if (addRequest.body.tasksFailedToAdd !== "") {
 			addedResponse += ` | Failed to add task(s): "${addRequest.body.tasksFailedToAdd}"`;
@@ -36,8 +38,8 @@ async function processCommand(user, command, message, flags, source, extra) {
 		let originalTask = editRequest.body.originalTask;
 		let newTask = editRequest.body.newTask;
 
-		params.task = newTask;
-		params.originalTask = originalTask;
+		params.task = `${openQuote}${newTask}${closeQuote}`;
+		params.originalTask = `${openQuote}${originalTask}${closeQuote}`;
 
 		respond(getResponse("taskEdited"), params);
 	} else if (getCommand("deleteTaskCommands").includes(command)) {
@@ -52,7 +54,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		let removedTasks = removeRequest.body.removedTasks;
 		let failedTasks = removeRequest.body.failedTasks;
 
-		params.task = removedTasks;
+		params.task = `${openQuote}${removedTasks}${closeQuote}`;
 
 		if (failedTasks !== "") {
 			deletedResponse += ` | Failed to delete task(s): "${failedTasks}"`;
@@ -70,6 +72,15 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 			let finishedAllResponse = getResponse("allTasksFinished");
 			params.doneCount = await completedTasksCount(user);
+			finishedAllResponse = finishedAllResponse.replaceAll(
+				"{pointName}",
+				getSetting("pointsName")
+			);
+
+			finishedAllResponse = finishedAllResponse.replaceAll(
+				"{taskName}",
+				getSetting("taskName")
+			);
 
 			respond(finishedAllResponse, params);
 			return;
@@ -84,7 +95,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 
 		let finishedResponse = getResponse("taskFinished");
 
-		params.task = finishRequest.body.markedTasks;
+		params.task = `${openQuote}${finishRequest.body.markedTasks}${closeQuote}`;
 		params.doneCount = await completedTasksCount(user);
 		params.pointCount =
 			finishRequest.body.markedTasksCount * getSetting("pointsPerTask");
@@ -115,7 +126,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		// task unfinished
 		let unfinishedResponse = getResponse("taskUnfinished");
 
-		params.task = unfinishRequest.body.markedTasks;
+		params.task = `${openQuote}${unfinishRequest.body.markedTasks}${closeQuote}`;
 
 		if (unfinishRequest.body.failedTasks !== "") {
 			unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishRequest.body.failedTasks}"`;
@@ -148,7 +159,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		// task now
 		let nowResponse = getResponse("nowTask");
 
-		params.task = nowRequest.body.task;
+		params.task = `${openQuote}${nowRequest.body.task}${closeQuote}`;
 
 		respond(nowResponse, params);
 	} else if (getCommand("focusTaskCommands").includes(command)) {
@@ -162,7 +173,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		// task focused
 		let focusedResponse = getResponse("taskFocused");
 
-		params.task = focusRequest.body.focusedTask;
+		params.task = `${openQuote}${focusRequest.body.task}${closeQuote}`;
 
 		respond(focusedResponse, params);
 	} else if (getCommand("unfocusTaskCommands").includes(command)) {
@@ -211,6 +222,9 @@ async function processCommand(user, command, message, flags, source, extra) {
 			}
 
 			let checkRequest = await checkTasks(mentioned);
+
+			// array of incomplete tasks
+			let incompleteTasks = checkRequest.body.reply.split(" | ");
 
 			if (checkRequest.status !== 200) {
 				// no tasks

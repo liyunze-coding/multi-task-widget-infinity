@@ -22,6 +22,8 @@ DB structure:
 
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
+var openQuote = getSetting("openQuote");
+var closeQuote = getSetting("closeQuote");
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = getSetting("taskSeparator");
@@ -259,7 +261,7 @@ async function getTaskMasterChampion() {
 		count: 0,
 	};
 
-	const streamer = configs.streamerUsernames.map((username) =>
+	const streamer = configs.StreamerUsernames.map((username) =>
 		username.toLowerCase()
 	);
 
@@ -882,8 +884,9 @@ async function addTask(username, userColor, task) {
 	return {
 		status: 200,
 		body: {
-			task: tasksToAdd.join('", "'),
-			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+			task: tasksToAdd.join(`${closeQuote}, ${openQuote}`),
+			tasksFailedToAdd:
+				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
 		},
 	};
 }
@@ -1288,8 +1291,10 @@ async function removeTask(username, task) {
 		return {
 			status: 200,
 			body: {
-				removedTasks: tasksRemoved.join('", "'),
-				failedTasks: tasksFailedToRemove.join('", "'),
+				removedTasks: tasksRemoved.join(`${closeQuote}, ${openQuote}`),
+				failedTasks: tasksFailedToRemove.join(
+					`${closeQuote}, ${openQuote}`
+				),
 			},
 		};
 	} else {
@@ -1547,12 +1552,12 @@ async function markTaskDone(username, task) {
 				} else {
 					tasksMarkedComplete.push(tasks[username].todos[index].text);
 					// increment count
-					await await addDoneCount(username, 1);
+					await addDoneCount(username, 1);
 				}
 			} else {
 				tasksMarkedComplete.push(tasks[username].todos[index].text);
 				// increment count
-				await await addDoneCount(username, 1);
+				await addDoneCount(username, 1);
 			}
 			tasks[username].todos[index].done = true;
 			tasks[username].todos[index].focus = false;
@@ -1575,8 +1580,12 @@ async function markTaskDone(username, task) {
 		return {
 			status: 200,
 			body: {
-				markedTasks: tasksMarkedComplete.join('", "'),
-				failedTasks: tasksFailedToComplete.join('", "'),
+				markedTasks: tasksMarkedComplete.join(
+					`${closeQuote}, ${openQuote}`
+				),
+				failedTasks: tasksFailedToComplete.join(
+					`${closeQuote}, ${openQuote}`
+				),
 				markedTasksCount: tasksMarkedComplete.length,
 			},
 		};
@@ -1777,8 +1786,12 @@ async function markTaskUndone(username, task) {
 		return {
 			status: 200,
 			body: {
-				markedTasks: tasksMarkedUndone.join('", "'),
-				failedTasks: tasksFailedToMarkUndone.join('", "'),
+				markedTasks: tasksMarkedUndone.join(
+					`${closeQuote}, ${openQuote}`
+				),
+				failedTasks: tasksFailedToMarkUndone.join(
+					`${closeQuote}, ${openQuote}`
+				),
 			},
 		};
 	} else {
@@ -1976,7 +1989,7 @@ async function checkTasks(name) {
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `incomplete {taskName}s (${incompleteTasks.length}) : `;
+	let reply = `${name}'s incomplete {taskName}s (${incompleteTasks.length}) : `;
 	let taskIndex;
 	for (let i = 0; i < incompleteTasks.length; i++) {
 		// get index of task by task name

@@ -1,4 +1,4 @@
-const defaultConfigs = (function () {
+const configs = (function () {
 	"use strict";
 
 	const StreamerUsernames = ["RythonDev"];
@@ -12,11 +12,13 @@ const defaultConfigs = (function () {
 		pointsName: "points", // string
 		pointsPerTask: 10, // integer
 		taskSeparator: [";", ",", "|"], // array of strings
+		openQuote: '"', // string
+		closeQuote: '"', // string
 		testTasks: false, // true or false
 		headerGoogleFont: false, // true: use google font, false: use system font
 		taskGoogleFont: false, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
-		enableTaskMaster: false, // true or false
+		enableTaskMaster: true, // true or false
 	};
 
 	// styles
@@ -48,7 +50,7 @@ const defaultConfigs = (function () {
 		headerFontWeight: "bold", // normal or bold or number
 		headerFontColor: "#fff", // hex or name
 
-		taskCountMarginRight: "0px", // px
+		taskCountMarginRight: "175px", // px
 
 		// body
 		bodyBackgroundColor: "#fff", // hex only
@@ -171,6 +173,7 @@ const defaultConfigs = (function () {
 			"!undone",
 			"!unfinish",
 			"!unfinished",
+			"!u",
 		],
 		nextTaskCommands: [
 			"!taskn",
@@ -230,7 +233,6 @@ const defaultConfigs = (function () {
 			"!setusertaskcount",
 			"!settaskcount",
 			"!settaskcountuser",
-			"!setusertask",
 		],
 		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
 		taskMasterCommands: ["!taskmaster", "!taskchampion"],
@@ -270,21 +272,21 @@ const defaultConfigs = (function () {
 	const responses = {
 		// Grouped by task-related responses
 		// Grouped by task creation and modification responses
-		taskAdded: 'The {taskName}(s) "{task}" has been added, {user}!',
+		taskAdded: "The {taskName}(s) {task} has been added, {user}!",
 		noTaskAdded:
 			"Looks like you already hit the limit of incomplete {taskName}s, {user}",
 		noTaskContent:
 			"Try using !task the-{taskName}-you-are-working-on {user}",
 		duplicateTask:
-			"Looks like you already have the {taskName} '{message}' up there {user}!",
+			"Looks like you already have the {taskName} {message} up there {user}!",
 		taskEdited:
-			'{taskName} "{originalTask}" has been edited to "{task}" successfully, {user}',
+			"{taskName} {originalTask} has been edited to {task} successfully, {user}",
 		noTaskEdit: "Try doing !edit [index] [new {taskName}] {user}",
-		nowTask: '"{task}" is now the {taskName} you are working on, {user}!',
+		nowTask: "{task} is now the {taskName} you are working on, {user}!",
 
 		// Grouped by task progression responses
 		taskNext:
-			"Good job on finishing the {taskName} '{oldTask}'! Now moving onto '{newTask}', {user}!",
+			"Good job on finishing the {taskName} {oldTask}! Now moving onto {newTask}, {user}!",
 		nextNoContent:
 			"Try using !next the-{taskName}-you-want-to-do-next {user}",
 		taskNextFailed:
@@ -294,23 +296,23 @@ const defaultConfigs = (function () {
 		clearedMyDone:
 			"All of your completed {taskName}s have been cleared, {user}!",
 		taskDeleted:
-			'{taskName}(s) "{task}" has been deleted successfully, {user}',
+			"{taskName}(s) {task} has been deleted successfully, {user}",
 		specifyTaskIndex:
 			"Try specifying the index of the incomplete task(s) {user}",
 		clearTasksExceptBroadcaster:
 			"All {taskName}s have been cleared except for the streamer's, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
 		clearedDone: "All completed {taskName}s have been cleared, {user}!",
-		clearedTasks: "All {taskName}s have been cleared, {user}!",
+		clearedtasks: "All {taskName}s have been cleared, {user}!",
 		clearedAll: "All {taskName}s and counts have been cleared, {user}!",
 		clearLocalStorage: "Local storage has been cleared, {user}!",
 
 		// Grouped by task completion responses
 		taskFinished:
-			'Good job on finishing the {taskName}(s) "{task}", {user}! You have earned {pointCount} {pointName} and completed {doneCount} task(s) so far!',
+			"Good job on finishing the {taskName}(s) {task}, {user}! You have earned {pointCount} {pointName} and completed {doneCount} task(s) so far!",
 		allTasksFinished:
 			"Good job on finishing all your {taskName}s, {user}! You have completed {doneCount} {taskName}(s) so far!",
-		taskUnfinished: '"{task}" has been unmarked as done, {user}!',
+		taskUnfinished: "{task} has been unmarked as done, {user}!",
 		taskAlreadyFinished:
 			"Looks like you already finished that {taskName} {user}",
 
@@ -322,7 +324,7 @@ const defaultConfigs = (function () {
 		onlyOneFocus: "You can only focus one {taskName} at a time {user}!",
 		specifyFocusTask:
 			"Try specifying an incomplete {taskName} to focus {user}!",
-		taskFocused: '{taskName} "{task}" has been focused, {user}!',
+		taskFocused: "{taskName} {task} has been focused, {user}!",
 
 		// Grouped by task existence responses
 		noTask: "Looks like you don't have a {taskName} up there {user}",
