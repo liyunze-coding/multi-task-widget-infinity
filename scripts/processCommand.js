@@ -23,7 +23,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		params.task = `${openQuote}${addRequest.body.task}${closeQuote}`;
 
 		if (addRequest.body.tasksFailedToAdd !== "") {
-			addedResponse += ` | Failed to add task(s): "${addRequest.body.tasksFailedToAdd}"`;
+			addedResponse += ` | Failed to add task(s): ${openQuote}${addRequest.body.tasksFailedToAdd}${closeQuote}`;
 		}
 
 		respond(addedResponse, params);
@@ -51,13 +51,13 @@ async function processCommand(user, command, message, flags, source, extra) {
 		}
 		let deletedResponse = getResponse("taskDeleted");
 
-		let removedTasks = removeRequest.body.removedTasks;
+		let removedTasks = `${openQuote}${removeRequest.body.removedTasks}${closeQuote}`;
 		let failedTasks = removeRequest.body.failedTasks;
 
-		params.task = `${openQuote}${removedTasks}${closeQuote}`;
+		params.task = removedTasks;
 
 		if (failedTasks !== "") {
-			deletedResponse += ` | Failed to delete task(s): "${failedTasks}"`;
+			deletedResponse += ` | Failed to delete {taskName}(s): ${openQuote}${failedTasks}${closeQuote}`;
 		}
 
 		respond(deletedResponse, params);
@@ -144,10 +144,10 @@ async function processCommand(user, command, message, flags, source, extra) {
 		// task next
 		let nextResponse = getResponse("taskNext");
 
-		params.oldTask = nextRequest.body.oldTask;
-		params.newTask = nextRequest.body.newTask;
+		params.oldTask = `${openQuote}${nextRequest.body.oldTask}${closeQuote}`;
+		params.newTask = `${openQuote}${nextRequest.body.newTask}${closeQuote}`;
 
-		respond(nextResponse, params);
+		await respond(nextResponse, params);
 	} else if (getCommand("nowTaskCommands").includes(command)) {
 		let nowRequest = await nowTask(user, extra.userColor, message);
 
@@ -173,7 +173,7 @@ async function processCommand(user, command, message, flags, source, extra) {
 		// task focused
 		let focusedResponse = getResponse("taskFocused");
 
-		params.task = `${openQuote}${focusRequest.body.task}${closeQuote}`;
+		params.task = `${openQuote}${focusRequest.body.focusedTask}${closeQuote}`;
 
 		respond(focusedResponse, params);
 	} else if (getCommand("unfocusTaskCommands").includes(command)) {

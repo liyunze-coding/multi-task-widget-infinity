@@ -1,4 +1,4 @@
-const configs = (function () {
+const defaultConfigs = (function () {
 	"use strict";
 
 	const StreamerUsernames = ["RythonDev"];
