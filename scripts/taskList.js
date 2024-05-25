@@ -2,12 +2,118 @@
 DB structure:
 
 - tasks
-    - username:
+    - [username]:
 		- todos (array)
-            - [{text, done}, {text, done}]
-		- done
+            - [{text, done, focus}, {text, done, focus}]
 		- userColor
+- counts
+	- users
+		- [username]:
+			- completeCount
+			- points
+	- totalCompleteCount
+
+- taskmaster
+	- users
+		- [username]:
+			- taskMasterCompleteCount
+	- startDate
 */
+
+var taskListMemory = {
+	doneTaskCount: 0,
+	totalTaskCount: 0,
+};
+
+function getSetting(setting) {
+	return configs.settings[setting] ?? defaultConfigs.settings[setting];
+}
+
+const DBHandler = {
+	db: null,
+	open: function () {
+		return new Promise((resolve, reject) => {
+			let request = indexedDB.open("tasksDB", 1);
+
+			request.onupgradeneeded = function (e) {
+				let db = e.target.result;
+				if (!db.objectStoreNames.contains("tasks")) {
+					db.createObjectStore("tasks", { autoIncrement: true });
+				}
+			};
+
+			request.onsuccess = function (e) {
+				DBHandler.db = e.target.result;
+				resolve();
+			};
+
+			request.onerror = function (e) {
+				console.log("Error opening db", e);
+				reject(e);
+			};
+		});
+	},
+	get: function (key) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readonly");
+			let store = transaction.objectStore("tasks");
+			let request = store.get(key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error getting item", e);
+			};
+		});
+	},
+	set: function (key, value) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.put(value, key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error setting item", e);
+			};
+		});
+	},
+	remove: function (key) {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.delete(key);
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error removing item", e);
+			};
+		});
+	},
+	clear: function () {
+		return new Promise((resolve, reject) => {
+			let transaction = DBHandler.db.transaction(["tasks"], "readwrite");
+			let store = transaction.objectStore("tasks");
+			let request = store.clear();
+
+			request.onsuccess = function (e) {
+				resolve(e.target.result);
+			};
+
+			request.onerror = function (e) {
+				reject("Error clearing store", e);
+			};
+		});
+	},
+};
 
 const settings = configs.settings;
 const styles = configs.styles;
@@ -136,853 +242,120 @@ function importStyles() {
 	}, 8000);
 }
 
-function resetDB() {
-	localStorage.clear();
-	setupDB();
-}
-
-function setupDB() {
-	if (!localStorage.tasks) {
-		localStorage.setItem(`tasks`, "{}");
-	}
-}
-
-// 0: limit has reached
-// 1: duplicate task
-// 2: invalid input
-// string (single or multiple tasks): success
-function addTask(username, userColor, task) {
-	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username]) {
-		tasks[username] = {
-			todos: [],
-			done: [],
-			userColor: userColor,
-		};
-	}
-
-	if (
-		incompleteTasksCount(username) >= settings.limit &&
-		settings.enableLimit
-	) {
-		return 0;
-	}
-
-	if (
-		tasks[username].todos.find(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		)
-	) {
-		return 1;
-	}
-
-	// if task is whitespace or empty
-	if (!task || !task.trim()) {
-		return 2;
-	}
-
-	let tasksFailedToAdd = [];
-
-	// if task has commas
-	if (task.includes(",")) {
-		let tasksToAdd = task.split(",").map((t) => t.trim());
-
-		if (
-			incompleteTasksCount(username) + tasksToAdd.length >
-				settings.limit &&
-			settings.enableLimit
-		) {
-			tasksFailedToAdd = tasksToAdd.slice(
-				settings.limit - incompleteTasksCount(username),
-				tasksToAdd.length
-			);
-
-			tasksToAdd = tasksToAdd.slice(
-				0,
-				settings.limit - incompleteTasksCount(username)
-			);
-		}
-
-		for (const t of tasksToAdd) {
-			tasks[username].todos.push({ text: t, done: false });
-		}
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-		return {
-			task: tasksToAdd.join('", "'),
-			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
-		};
-	}
-
-	tasks[username].todos.push({ text: task, done: false });
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	if (!scrolling) {
-		renderTaskListToDOM();
-	}
-
-	return {
-		task: task,
-		tasksFailedToAdd: "",
-	};
-}
-
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
-function focusTask(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return;
-	}
-
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-	if (incompleteTasks.length === 0) {
-		return;
-	}
-
-	if (task.includes(",")) {
-		return;
-	}
-
-	let index = tasks[username].todos.findIndex(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
-
-	if (index === -1) {
-		if (isInt(task)) {
-			index = parseInt(task) - 1; // ACTUAL INDEX
-		} else if (incompleteTasks.length === 1) {
-			index = tasks[username].todos.findIndex((t) => !t.done);
-		} else {
-			return;
-		}
-
-		if (index < 0 || index > tasks[username].todos.length - 1) {
-			return;
-		}
-	} else {
-		if (tasks[username].todos[index].done) {
-			return;
-		}
-	}
-
-	let focusedTask = tasks[username].todos[index].text;
-
-	// if task is already focused, return 1
-	if (tasks[username].todos[index].focus) {
-		return;
-	}
-
-	// set all tasks to unfocused
-	for (const task of tasks[username].todos) {
-		task.focus = false;
-	}
-
-	// set task to focused
-	tasks[username].todos[index].focus = true;
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-
-	if (!scrolling) {
-		renderTaskListToDOM();
-	}
-
-	return {
-		status: 200,
-		body: {
-			focusedTask: focusedTask,
-		},
-	};
-}
-
-// 0: user has no tasks
-// 1: invalid input
-// 200: success
-function unfocusTask(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return;
-	}
-
-	// if no tasks are focused, return 1
-	if (!tasks[username].todos.find((t) => t.focus)) {
-		return;
-	}
-
-	// set all tasks to unfocused
-	for (const task of tasks[username].todos) {
-		task.focus = false;
-	}
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-}
-
-// 0: user has no tasks
-// 1: invalid input
-// removed task: success
-function removeTask(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-
-	// match regex: integers separated by space e.g. '1 2 3 4'
-	if (task.match(/^(\d+ )*\d+$/)) {
-		// insert commas between integers
-		task = task.replace(/(\d+)/g, "$1,");
-		// remove trailing comma
-		task = task.slice(0, -1);
-	}
-	let removedTaskIndex = [];
-	let tasksRemoved = [];
-	let tasksFailedToRemove = [];
-
-	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToRemove = task.split(",").map((t) => t.trim());
-		for (const t of tasksToRemove) {
-			let index = tasks[username].todos.findIndex(
-				(task) => task.text.toLowerCase() === t.toLowerCase()
-			);
-
-			if (index === -1) {
-				if (isInt(t)) {
-					index = parseInt(t) - 1; // ACTUAL INDEX
-				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
-					tasksRemoved.push(tasks[username].todos[index].text);
-					removedTaskIndex.push(index);
-				} else {
-					tasksFailedToRemove.push(t);
-					continue;
-				}
-
-				if (index < 0 || index > tasks[username].todos.length - 1) {
-					tasksFailedToRemove.push(t);
-					continue;
-				} else {
-					tasksRemoved.push(tasks[username].todos[index].text);
-					removedTaskIndex.push(index);
-				}
-			} else {
-				tasksRemoved.push(tasks[username].todos[index].text);
-				removedTaskIndex.push(index);
-			}
-		}
-
-		if (tasksRemoved.length === 0) {
-			return 1;
-		}
-
-		// sort removedTaskIndex in descending order
-		removedTaskIndex.sort((a, b) => b - a);
-
-		// remove tasks from tasks array
-		for (const index of removedTaskIndex) {
-			tasks[username].todos.splice(index, 1);
-		}
-
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-		return {
-			removedTasks: tasksRemoved.join('", "'),
-			failedTasks: tasksFailedToRemove.join('", "'),
-		};
-	} else {
-		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		);
-
-		if (index === -1) {
-			if (isInt(task)) {
-				index = parseInt(task) - 1; // ACTUAL INDEX
-			} else if (incompleteTasks.length === 1) {
-				index = tasks[username].todos.findIndex((t) => !t.done);
-			} else {
-				return 1;
-			}
-
-			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
-			}
-		}
-
-		task = tasks[username].todos[index].text;
-
-		tasks[username].todos.splice(index, 1);
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		renderTaskListToDOM();
-		return {
-			removedTasks: task,
-			failedTasks: "",
-		};
-	}
-}
-
-// function to determine if string is integer
-function isInt(value) {
-	return (
-		!isNaN(value) &&
-		parseInt(Number(value)) == value &&
-		!isNaN(parseInt(value, 10))
-	);
-}
-
-// 0: user has no tasks
-// 1: success
-function clearOwnDoneTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	let incompleteUserTasks = tasks[username].todos.filter((t) => !t.done);
-
-	// replace user's task with incomplete tasks
-	tasks[username].todos = incompleteUserTasks;
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	if (!scrolling) {
-		renderTaskListToDOM();
-	}
-
-	return 1;
-}
-
-// 0: user has no tasks
-// 1: invalid input
-// task: succcess
-function markTaskDone(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	// user does not have any tasks
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-
-	// match regex: integers separated by space e.g. '1 2 3 4'
-	if (task.match(/^(\d+ )*\d+$/)) {
-		// insert commas between integers
-		task = task.replace(/(\d+)/g, "$1,");
-		// remove trailing comma
-		task = task.slice(0, -1);
-	}
-
-	let tasksMarkedComplete = [];
-	let tasksFailedToComplete = [];
-
-	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToMarkDone = task.split(",").map((t) => t.trim());
-		for (const t of tasksToMarkDone) {
-			let index = tasks[username].todos.findIndex(
-				(task) => task.text.toLowerCase() === t.toLowerCase()
-			);
-
-			if (index === -1) {
-				if (isInt(t)) {
-					index = parseInt(t) - 1; // ACTUAL INDEX
-				} else if (incompleteTasks.length === 1) {
-					index = tasks[username].todos.findIndex(
-						(t) => !t.done
-					);
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
-				} else {
-					tasksFailedToComplete.push(t);
-					continue;
-				}
-
-				if (index < 0 || index > tasks[username].todos.length - 1) {
-					tasksFailedToComplete.push(t);
-					continue;
-				} else {
-					tasksMarkedComplete.push(
-						tasks[username].todos[index].text
-					);
-				}
-			} else {
-				tasksMarkedComplete.push(tasks[username].todos[index].text);
-			}
-			tasks[username].todos[index].done = true;
-		}
-
-		if (tasksMarkedComplete.length === 0) {
-			return 1;
-		}
-
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-		return {
-			markedTasks: tasksMarkedComplete.join('", "'),
-			failedTasks: tasksFailedToComplete.join('", "'),
-		};
-	} else {
-		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		);
-
-		if (index === -1) {
-			if (isInt(task)) {
-				index = parseInt(task) - 1; // ACTUAL INDEX
-			} else if (incompleteTasks.length === 1) {
-				index = tasks[username].todos.findIndex((t) => !t.done);
-			} else {
-				return 1;
-			}
-
-			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
-			}
-		}
-
-		task = tasks[username].todos[index].text;
-		tasks[username].todos[index].done = true;
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-		return {
-			markedTasks: task,
-			failedTasks: "",
-		};
-	}
-}
-
-function markAllTasksAsDone(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	// user does not have any tasks
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	for (const task of tasks[username].todos) {
-		task.done = true;
-	}
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	if (!scrolling) {
-		renderTaskListToDOM();
-	}
-
-	return 1;
-}
-
-function markTaskUndone(username, task) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	// user does not have any tasks
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	const completedTasks = tasks[username].todos.filter((t) => t.done);
-
-	// match regex: integers separated by space e.g. '1 2 3 4'
-	if (task.match(/^(\d+ )*\d+$/)) {
-		// insert commas between integers
-		task = task.replace(/(\d+)/g, "$1,");
-		// remove trailing comma
-		task = task.slice(0, -1);
-	}
-
-	let tasksMarkedUndone = [];
-	let tasksFailedToMarkUndone = [];
-
-	// check if there's a comma in the task (multiple tasks)
-	if (task.includes(",")) {
-		let tasksToMarkUndone = task.split(",").map((t) => t.trim());
-		for (const t of tasksToMarkUndone) {
-			let index = tasks[username].todos.findIndex(
-				(task) => task.text.toLowerCase() === t.toLowerCase()
-			);
-
-			if (index === -1) {
-				// user input isn't the task name
-				if (isInt(t)) {
-					index = parseInt(t) - 1; // ACTUAL INDEX
-				} else {
-					tasksFailedToMarkUndone.push(t);
-					continue;
-				}
-
-				if (index < 0 || index > tasks[username].todos.length - 1) {
-					tasksFailedToMarkUndone.push(t);
-					continue;
-				} else {
-					tasksMarkedUndone.push(
-						tasks[username].todos[index].text
-					);
-				}
-			} else {
-				tasksMarkedUndone.push(tasks[username].todos[index].text);
-			}
-			tasks[username].todos[index].done = false;
-		}
-
-		if (tasksMarkedUndone.length === 0) {
-			return 1;
-		}
-
-		localStorage.setItem(`tasks`, JSON.stringify(tasks));
-		if (!scrolling) {
-			renderTaskListToDOM();
-		}
-
-		return {
-			markedTasks: tasksMarkedUndone.join('", "'),
-			failedTasks: tasksFailedToMarkUndone.join('", "'),
-		};
-	} else {
-		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
-		);
-
-		if (index === -1) {
-			if (isInt(task)) {
-				index = parseInt(task) - 1; // ACTUAL INDEX
-			} else if (completedTasks.length === 1) {
-				index = tasks[username].todos.findIndex((t) => t.done);
-			} else {
-				return 1;
-			}
-
-			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return 1;
-			}
-
-			tasks[username].todos[index].done = false;
-			localStorage.setItem(`tasks`, JSON.stringify(tasks));
-			if (!scrolling) {
-				renderTaskListToDOM();
-			}
-			return {
-				markedTasks: tasks[username].todos[index].text,
-				failedTasks: "",
-			};
-		}
-	}
-}
-
-// 0: user has no tasks
-// 1: invalid input
-// [original task, new task]: succcess
-function editTask(username, message) {
-	const tasks = JSON.parse(localStorage.tasks);
-	let noSpecifiedIndex = false;
-
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return 0;
-	}
-
-	// example 'message': 1 new task
-	let index = parseInt(message.split(" ")[0]) - 1; // ACTUAL INDEX
-
-	let incompleteTaskCount = tasks[username].todos.filter(
-		(t) => !t.done
-	).length;
-
-	if (incompleteTaskCount === 1 && index !== 0) {
-		// find index of incomplete task
-		index = tasks[username].todos.findIndex((t) => !t.done);
-		noSpecifiedIndex = true;
-	}
-
-	if (isNaN(index)) {
-		return 1;
-	}
-
-	let newTask = message.split(" ").slice(1).join(" ");
-
-	if (noSpecifiedIndex) {
-		newTask = message;
-	}
-
-	// if newTask is empty or whitespace, return 1
-	if (!newTask || !newTask.trim()) {
-		return 1;
-	}
-
-	if (index < 0 || index > tasks[username].todos.length - 1) {
-		return 1;
-	}
-
-	let originalTask = tasks[username].todos[index].text;
-
-	tasks[username].todos[index].text = newTask;
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	if (!scrolling) {
-		renderTaskListToDOM();
-	}
-
-	return [originalTask, newTask];
-}
-
-// 0: user has no tasks
-function checkTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-
-	// Go through keys of tasks, find match of lowercased username
-	username = Object.keys(tasks).find(
-		(user) => user.toLowerCase() === username.toLowerCase()
-	);
-
-	if (!tasks[username]) {
-		return 0;
-	}
-
-	// filter completed tasks
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-	const completedTasks = tasks[username].todos.filter((t) => t.done);
-
-	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `@${username} incomplete tasks (${incompleteTasks.length}) : `;
-	let taskIndex;
-	for (let i = 0; i < incompleteTasks.length; i++) {
-		// get index of task by task name
-		taskIndex =
-			tasks[username].todos.findIndex(
-				(t) =>
-					t.text.toLowerCase() ===
-					incompleteTasks[i].text.toLowerCase()
-			) + 1;
-		reply += `${taskIndex}. ${incompleteTasks[i].text} | `;
-	}
-	reply = reply.slice(0, -3);
-
-	// format completed tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	// reply += `\n|| completed tasks (${completedTasks.length}) : `;
-
-	// for (let j = 0; j < completedTasks.length; j++) {
-	// 	taskIndex =
-	// 		tasks[username].todos.findIndex(
-	// 			(t) =>
-	// 				t.text.toLowerCase() ===
-	// 				completedTasks[j].text.toLowerCase()
-	// 		) + 1;
-	// 	reply += `${taskIndex}. ${completedTasks[j].text} | `;
-	// }
-	// reply = reply.slice(0, -3);
-
-	return reply;
-}
-
-// 0: user has no tasks
-function listTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username]) {
-		return 0;
-	}
-	// filter completed tasks
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-
-	if (incompleteTasks.length === 0) {
-		return 0;
-	}
-
-	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `@${username} `;
-	let taskIndex;
-	for (let i = 0; i < incompleteTasks.length; i++) {
-		// get index of task by task name
-		taskIndex =
-			tasks[username].todos.findIndex(
-				(t) =>
-					t.text.toLowerCase() ===
-					incompleteTasks[i].text.toLowerCase()
-			) + 1;
-		reply += `${incompleteTasks[i].text}, `;
-	}
-	reply = reply.slice(0, -2);
-	return reply;
-}
-
-function incompleteTasksCount(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-	if (!tasks[username]) {
-		return 0;
-	}
-	return tasks[username].todos.filter((t) => !t.done).length;
-}
-
-// 0: user has no tasks
-function clearUserTasks(username) {
-	const tasks = JSON.parse(localStorage.tasks);
-	// find username where lowercase matches username
-	username = Object.keys(tasks).find(
-		(user) => user.toLowerCase() === username.toLowerCase()
-	);
-
-	if (!username) {
-		return 0;
-	}
-
-	tasks[username].todos = [];
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-}
-
-function clearAllDoneTasks() {
-	const tasks = JSON.parse(localStorage.tasks);
-	for (const user in tasks) {
-		tasks[user].todos = tasks[user].todos.filter((t) => !t.done);
-	}
-	cancelAnimation();
-	checkToAnimate();
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-	renderTaskListToDOM();
-}
-
-function clearAllTasks() {
-	resetDB();
-	cancelAnimation();
-	checkToAnimate();
-	renderTaskListToDOM();
-}
-
-function clearAllExceptStreamer(streamer) {
-	// clear all tasks except for broadcasters
-	const tasks = JSON.parse(localStorage.tasks);
-	for (const user in tasks) {
-		if (user.toLowerCase() !== streamer.toLowerCase()) {
-			tasks[user].todos = [];
-		}
-	}
-
-	localStorage.setItem(`tasks`, JSON.stringify(tasks));
-
-	clearAllDoneTasks();
-
-	cancelAnimation();
-	checkToAnimate();
-
-	renderTaskListToDOM();
-}
-
-function renderTaskListToDOM() {
-	let tasks = JSON.parse(localStorage.tasks);
-
+async function renderTaskListToDOM() {
+	const tasks = await DBHandler.get("tasks");
 	const taskContainers = document.querySelectorAll(".task-container");
+
 	taskContainers.forEach((taskList) => {
 		taskList.innerHTML = "";
-
 		let totalTaskCount = 0;
 		let completedTasksCount = 0;
 
-		if (settings.showOnlyStreamerTasks) {
-			// filter out tasks that are not from the streamer
-			tasks = Object.keys(tasks).reduce((obj, key) => {
-				if (key.toLowerCase() === auth.channel.toLowerCase()) {
-					obj[key] = tasks[key];
-				}
-				return obj;
-			}, {});
-		}
-
-		for (const user in tasks) {
-			const userTasks = tasks[user];
-			if (userTasks.todos.length === 0) {
-				continue;
+		if (getSetting("showStreamersTasksOnly")) {
+			const streamer = getSetting("streamer");
+			if (tasks[streamer]) {
+				({ totalTaskCount, completedTasksCount } = handleTasks(
+					tasks,
+					streamer,
+					taskList,
+					totalTaskCount,
+					completedTasksCount
+				));
 			}
-
-			const userColor = userTasks.userColor;
-
-			const taskDiv = document.createElement("div");
-			taskDiv.classList.add("task");
-			taskList.appendChild(taskDiv);
-
-			const usernameDiv = document.createElement("div");
-			usernameDiv.classList.add("username");
-			usernameDiv.innerText = user;
-
-			if (styles.usernameColor === "") {
-				usernameDiv.style.color = userColor;
-			} else {
-				usernameDiv.style.color = styles.usernameColor;
-			}
-
-			taskDiv.appendChild(usernameDiv);
-
-			const olListDiv = document.createElement("ol");
-			olListDiv.classList.add("user-tasks");
-			taskDiv.appendChild(olListDiv);
-
-			for (const task of userTasks.todos) {
-				const taskElement = document.createElement("li");
-				taskElement.classList.add("todo");
-
-				totalTaskCount++;
-
-				if (task.done) {
-					taskElement.classList.add("done");
-					completedTasksCount++;
-				} else if (task.focus) {
-					taskElement.classList.add("focus");
-				}
-
-				taskElement.innerText = task.text;
-				olListDiv.appendChild(taskElement);
+		} else {
+			for (const user in tasks) {
+				if (user.toLowerCase() === "id" || !tasks[user].todos) continue;
+				({ totalTaskCount, completedTasksCount } = handleTasks(
+					tasks,
+					user,
+					taskList,
+					totalTaskCount,
+					completedTasksCount
+				));
 			}
 		}
 
-		document.querySelector(
-			".task-count"
-		).innerText = `${completedTasksCount}/${totalTaskCount}`;
+		updateTaskCount(totalTaskCount, completedTasksCount);
 	});
-	checkToAnimate();
+
+	await DBHandler.set("tasks", tasks);
+	await checkToAnimate();
+}
+
+function handleTasks(
+	tasks,
+	user,
+	taskList,
+	totalTaskCount,
+	completedTasksCount
+) {
+	const userTasks = tasks[user];
+	if (userTasks.todos.length === 0) {
+		delete tasks[user];
+	} else {
+		const taskDiv = createTaskDiv(userTasks, user);
+		taskList.appendChild(taskDiv);
+
+		for (const task of userTasks.todos) {
+			const taskElement = createTaskElement(task);
+			taskDiv.querySelector(".user-tasks").appendChild(taskElement);
+
+			totalTaskCount++;
+			if (task.done) completedTasksCount++;
+		}
+	}
+
+	return { totalTaskCount, completedTasksCount };
+}
+
+function createTaskDiv(userTasks, username) {
+	const taskDiv = document.createElement("div");
+	taskDiv.classList.add("task");
+
+	const usernameDiv = document.createElement("div");
+	usernameDiv.classList.add("username");
+	usernameDiv.innerText = username;
+	usernameDiv.style.color = styles.usernameColor || userTasks.userColor;
+	taskDiv.appendChild(usernameDiv);
+
+	const olListDiv = document.createElement("ol");
+	olListDiv.classList.add("user-tasks");
+	taskDiv.appendChild(olListDiv);
+
+	return taskDiv;
+}
+
+function createTaskElement(task) {
+	const taskElement = document.createElement("li");
+	taskElement.classList.add("todo");
+	taskElement.innerText = task.text;
+
+	if (task.done) taskElement.classList.add("done");
+	else if (task.focus) taskElement.classList.add("focus");
+
+	return taskElement;
+}
+
+function updateTaskCount(totalTaskCount, completedTasksCount) {
+	if (taskListMemory.doneTaskCount > completedTasksCount) {
+		completedTasksCount = taskListMemory.doneTaskCount;
+		totalTaskCount = taskListMemory.totalTaskCount;
+	}
+
+	if (totalTaskCount < completedTasksCount) {
+		totalTaskCount = completedTasksCount;
+	}
+
+	document.querySelector(
+		".task-count"
+	).innerText = `${completedTasksCount}/${totalTaskCount}`;
+
+	taskListMemory.doneTaskCount = completedTasksCount;
+	taskListMemory.totalTaskCount = totalTaskCount;
 }
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// unit tests
-async function tests1() {
-	let listOfStreamers = [
-		`cloudydayzzz`,
-		`berryspace`,
-		`MohFocus`,
-		`xeno_hiraeth`,
-		`euphie___`,
-		`unknownnie`,
-		`theyolotato`,
-		// `charliosaurus`,
-		// `jutstreams`,
-		// `mikewhatwhere`,
-		// `studypaws`,
-		// `pcc_lanezzz`,
-		// `workwithjandj`,
-		// `studylena`,
-	];
-
-	for (let i = 0; i < listOfStreamers.length; i++) {
-		addTask(
-			listOfStreamers[i],
-			"#ffc0cb",
-			`task 1, task 2, task 3, task 4, task 5`
-		);
-		await sleep(1000);
-		markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
-		await sleep(1000);
-	}
 }
 
 async function checkToAnimate() {
@@ -1056,10 +429,10 @@ function addAnimationListeners() {
 	}
 }
 
-function animationFinished() {
+async function animationFinished() {
 	scrolling = false;
-	renderTaskListToDOM();
-	checkToAnimate();
+	await renderTaskListToDOM();
+	await checkToAnimate();
 }
 
 function cancelAnimation() {
@@ -1070,21 +443,17 @@ function cancelAnimation() {
 		secondaryAnimation.cancel();
 	}
 	scrolling = false;
-	// console.log("animation cancelled");
 }
 
-if (!settings.modifyLocalStorage) {
-	window.addEventListener(
-		"storage",
-		function () {
-			renderTaskListToDOM();
-		},
-		false
-	);
-}
+DBHandler.open()
+	.then(async () => {
+		importStyles();
+		await renderTaskListToDOM();
 
-(function () {
-	setupDB();
-	importStyles();
-	renderTaskListToDOM();
-})();
+		setInterval(async () => {
+			await renderTaskListToDOM();
+		}, 5000);
+	})
+	.catch((error) => {
+		console.error("Error opening database:", error);
+	});

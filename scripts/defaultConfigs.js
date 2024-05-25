@@ -1,4 +1,4 @@
-const configs = (function () {
+const defaultConfigs = (function () {
 	"use strict";
 
 	const settings = {
@@ -6,7 +6,7 @@ const configs = (function () {
 		testTasks: false, // true or false
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
-		showStreamersTasksOnly: false, // true or false
+		showStreamersTasksOnly: true, // true or false
 	};
 
 	const animation = {

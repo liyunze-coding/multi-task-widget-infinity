@@ -1,32 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<script src="http://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
 
-<head>
-	<meta charset="UTF-8" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<script src="http://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+		<script src="./configs.js"></script>
+		<script defer src="scripts/defaultConfigs.js"></script>
+		<script defer src="scripts/index.js"></script>
+		<script defer src="scripts/taskList.js"></script>
 
-	<script src="./auth.js"></script>
-	<script src="./configs.js"></script>
-	<script defer src="scripts/index.js"></script>
-	<script defer src="scripts/taskList.js"></script>
+		<link rel="stylesheet" type="text/css" href="styles/taskList.css" />
 
-	<link rel="stylesheet" type="text/css" href="styles/taskList.css" />
+		<title>Task List</title>
+	</head>
 
-	<title>Task List</title>
-</head>
-
-<body>
-	<div id="main-container">
-		<div class="header">
-			<div class="title">!taskhelp</div>
-			<div class="task-count">0/0</div>
-		</div>
-		<div class="task-wrapper">
-			<div class="task-container primary">
-				<!-- 
+	<body>
+		<div id="main-container">
+			<div class="header">
+				<div class="title">!taskhelp</div>
+				<div class="task-count">0/0</div>
+			</div>
+			<div class="task-wrapper">
+				<div class="task-container primary">
+					<!-- 
 					<div class="task">
 						<div class="username">RyanPython</div>
 						<ol class="user-tasks">
@@ -35,10 +34,9 @@
 						</ol>
 					</div> 
 					-->
+				</div>
+				<div class="task-container secondary"></div>
 			</div>
-			<div class="task-container secondary"></div>
 		</div>
-	</div>
-</body>
-
+	</body>
 </html>

@@ -87,7 +87,3 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
 		}
 	}
 };
-
-if (configs.settings.modifyLocalStorage) {
-	ComfyJS.Init(auth.username, `oauth:${auth.oauth}`, [auth.channel]);
-}
