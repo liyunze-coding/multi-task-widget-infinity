@@ -23,6 +23,8 @@ DB structure:
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
 const responses = configs.responses;
+var openQuote = getSetting("openQuote");
+var closeQuote = getSetting("closeQuote");
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = getSetting("taskSeparator");
@@ -809,7 +811,8 @@ async function addTask(username, userColor, task) {
 	const taskExists = tasks[username].todos.find(
 		(t) => t.text.toLowerCase() === task.toLowerCase()
 	);
-	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
+	const taskIsInvalid =
+		!task || !task.trim() || task.toLowerCase() === "all" || isInt(task);
 	const userHasReachedTaskLimit =
 		incompleteTasksCount(username) >= getSetting("limit") &&
 		getSetting("enableLimit");
@@ -845,7 +848,11 @@ async function addTask(username, userColor, task) {
 	const tasksFailedToAdd = [];
 
 	tasksToAdd.forEach((t) => {
-		if (t && !tasks[username].todos.find((task) => task.text === t)) {
+		if (
+			t &&
+			!tasks[username].todos.find((task) => task.text === t) &&
+			!isInt(t)
+		) {
 			tasks[username].todos.push({ text: t, done: false, focus: false });
 			taskListMemory.totalTaskCount++;
 		} else {
@@ -861,8 +868,9 @@ async function addTask(username, userColor, task) {
 	return {
 		status: 200,
 		body: {
-			task: tasksToAdd.join('", "'),
-			tasksFailedToAdd: tasksFailedToAdd.join('", "') || "",
+			task: tasksToAdd.join(`${closeQuote}, ${openQuote}`),
+			tasksFailedToAdd:
+				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
 		},
 	};
 }
@@ -1105,6 +1113,14 @@ async function focusTask(username, task) {
 		);
 	}
 
+	// if task is already completed, return 1
+	if (tasks[username].todos[index].done) {
+		return createErrorResponse(
+			`@${username} task is already completed`,
+			responses.specifyTaskIndex
+		);
+	}
+
 	// set all tasks to unfocused
 	tasks[username].todos.forEach((task) => {
 		task.focus = false;
@@ -1267,8 +1283,10 @@ async function removeTask(username, task) {
 		return {
 			status: 200,
 			body: {
-				removedTasks: tasksRemoved.join('", "'),
-				failedTasks: tasksFailedToRemove.join('", "'),
+				removedTasks: tasksRemoved.join(`${closeQuote}, ${openQuote}`),
+				failedTasks: tasksFailedToRemove.join(
+					`${closeQuote}, ${openQuote}`
+				),
 			},
 		};
 	} else {
@@ -1318,6 +1336,82 @@ async function removeTask(username, task) {
 	}
 }
 
+async function getFocusedTask(username) {
+	const tasks = await DBHandler.get("tasks");
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: getResponse("noTask"),
+			},
+		};
+	}
+
+	let focusedTask = tasks[username].todos.find((t) => t.focus);
+
+	if (!focusedTask) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no focused task`,
+				error: getResponse("noFocusedTask"),
+			},
+		};
+	}
+
+	return {
+		status: 200,
+		body: {
+			focusedTask: focusedTask.text,
+		},
+	};
+}
+
+async function checkIfTaskExists(username, task) {
+	const tasks = await DBHandler.get("tasks");
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: getResponse("noTask"),
+			},
+		};
+	}
+
+	let taskExistsBasedOnText = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	)
+		? true
+		: false;
+
+	// check if task exists based on index, has to be incomplete
+	let taskExistsBasedOnIndex = false;
+
+	if (tasks[username]) {
+		taskExistsBasedOnIndex =
+			isInt(task) &&
+			parseInt(task) > 0 &&
+			parseInt(task) <= tasks[username].todos.length;
+	}
+
+	return {
+		text: taskExistsBasedOnText,
+		index: taskExistsBasedOnIndex,
+	};
+}
+
+/**
+ * This function marks the current task of a user as complete and adds a new task to the user's task list.
+ *
+ * @param {string} username - The name of the user who is completing the current task and adding a new one.
+ * @param {string} task - The text description of the new task to be added.
+ *
+ * @returns {Object} - An object containing the status of the operation and a body with either the old and new task or an error message.
+ */
 /**
  * This function marks the current task of a user as complete and adds a new task to the user's task list.
  *
@@ -1333,7 +1427,7 @@ async function nextTask(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1343,19 +1437,128 @@ async function nextTask(username, task) {
 			status: 1,
 			body: {
 				"error message": `@${username} empty task`,
-				error: responses.nextNoContent,
+				error: getResponse("nextNoContent"),
 			},
 		};
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
-	if (incompleteTasks.length !== 1) {
+	const taskExists = await checkIfTaskExists(username, task);
+	const textTaskExists = taskExists.text;
+	const indexTaskExists = taskExists.index;
+	const focusedTaskExists = incompleteTasks.find((t) => t.focus);
+
+	// check if there's a focused task
+	if (!focusedTaskExists && incompleteTasks.length > 1) {
 		return {
 			status: 0,
 			body: {
-				"error message": `@${username} has more than one incomplete task`,
-				error: responses.taskNextFailed,
+				"error message": `@${username} does not have a focused task`,
+				error: getResponse("noFocusedTask"),
+			},
+		};
+	} else if (textTaskExists || indexTaskExists) {
+		let index = tasks[username].todos.findIndex((t) => t.focus);
+		let oldTask = tasks[username].todos[index].text;
+
+		// if old task is the same as an existing task, return 1
+		if (textTaskExists) {
+			if (tasks[username].todos.find((t) => t.text === task)) {
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} already has this task`,
+						error: getResponse("duplicateTask"),
+					},
+				};
+			}
+		} else {
+			if (tasks[username].todos[parseInt(task) - 1].done) {
+				return {
+					status: 1,
+					body: {
+						"error message": `@${username} already finished this task`,
+						error: getResponse("taskAlreadyFinished"),
+					},
+				};
+			}
+		}
+
+		// mark focused task as complete then focus on the existing task
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+		tasks[username].todos[index].focus = false;
+
+		let newFocusTask = null;
+
+		// focus on the new task
+		if (textTaskExists) {
+			let newIndex = tasks[username].todos.findIndex(
+				(t) => t.text.toLowerCase() === task.toLowerCase()
+			);
+			newFocusTask = tasks[username].todos[newIndex];
+		} else {
+			newFocusTask = tasks[username].todos[parseInt(task) - 1];
+		}
+
+		newFocusTask.focus = true;
+
+		await addDoneCount(username, 1);
+
+		await DBHandler.set("tasks", tasks);
+
+		if (!scrolling) {
+			await renderTaskListToDOM();
+		}
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: newFocusTask.text,
+			},
+		};
+	} else if (focusedTaskExists) {
+		if (!indexTaskExists && isInt(task)) {
+			return {
+				status: 1,
+				body: {
+					"error message": `@${username} invalid input`,
+					error: getResponse("specifyTaskIndex"),
+				},
+			};
+		}
+
+		// mark the focused task as complete, then add a new task "task"
+
+		// find index of focused task
+		let index = tasks[username].todos.findIndex((t) => t.focus);
+
+		let oldTask = tasks[username].todos[index].text;
+
+		// mark task as done
+		tasks[username].todos[index].done = true;
+		tasks[username].todos[index].focus = false;
+
+		// add new task
+		tasks[username].todos.push({ text: task, done: false, focus: true });
+		taskListMemory.totalTaskCount++;
+
+		await addDoneCount(username, 1);
+
+		await DBHandler.set("tasks", tasks);
+
+		if (!scrolling) {
+			await renderTaskListToDOM();
+		}
+
+		return {
+			status: 200,
+			body: {
+				oldTask: oldTask,
+				newTask: task,
 			},
 		};
 	} else {
@@ -1375,6 +1578,10 @@ async function nextTask(username, task) {
 		taskListMemory.totalTaskCount++;
 
 		await DBHandler.set("tasks", tasks);
+
+		if (!scrolling) {
+			await renderTaskListToDOM();
+		}
 
 		return {
 			status: 200,
@@ -1554,8 +1761,12 @@ async function markTaskDone(username, task) {
 		return {
 			status: 200,
 			body: {
-				markedTasks: tasksMarkedComplete.join('", "'),
-				failedTasks: tasksFailedToComplete.join('", "'),
+				markedTasks: tasksMarkedComplete.join(
+					`${closeQuote}, ${openQuote}`
+				),
+				failedTasks: tasksFailedToComplete.join(
+					`${closeQuote}, ${openQuote}`
+				),
 				markedTasksCount: tasksMarkedComplete.length,
 			},
 		};
@@ -1756,8 +1967,12 @@ async function markTaskUndone(username, task) {
 		return {
 			status: 200,
 			body: {
-				markedTasks: tasksMarkedUndone.join('", "'),
-				failedTasks: tasksFailedToMarkUndone.join('", "'),
+				markedTasks: tasksMarkedUndone.join(
+					`${closeQuote}, ${openQuote}`
+				),
+				failedTasks: tasksFailedToMarkUndone.join(
+					`${closeQuote}, ${openQuote}`
+				),
 			},
 		};
 	} else {
@@ -1919,16 +2134,26 @@ async function editTask(username, message) {
 /**
  * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
  *
- * @param {string} username - The name of the user whose tasks are to be checked.
+ * @param {string} name - The name of the user whose tasks are to be checked.
  * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
  */
-async function checkTasks(username) {
+async function checkTasks(name) {
 	const tasks = await DBHandler.get("tasks");
 
 	// Go through keys of tasks, find match of lowercased username
-	username = Object.keys(tasks).find(
-		(user) => user.toLowerCase() === username.toLowerCase()
+	let username = Object.keys(tasks).find(
+		(user) => user.toLowerCase() === name.toLowerCase()
 	);
+
+	if (!username) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${name} has no tasks`,
+				error: getResponse("noTask"),
+			},
+		};
+	}
 
 	if (!tasks[username]) {
 		return {
@@ -1945,7 +2170,7 @@ async function checkTasks(username) {
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `incomplete {taskName}(s) (${incompleteTasks.length}) : `;
+	let reply = `${name}'s incomplete {taskName}s (${incompleteTasks.length}) : `;
 	let taskIndex;
 	for (let i = 0; i < incompleteTasks.length; i++) {
 		// get index of task by task name
@@ -2115,7 +2340,7 @@ async function clearAll() {
  * Clears all tasks from the local storage except for those belonging to specified streamer usernames.
  * After clearing, it also clears all done tasks, cancels any ongoing animation and re-renders the task list to the DOM.
  *
- * @param {string[]} streamerUsernames - An array of streamer usernames whose tasks should not be cleared.
+ * @param {string[]} streamerUsername - An array of streamer usernames whose tasks should not be cleared.
  * @returns {Object} An object with a status property indicating the success of the operation (200 for success).
  */
 async function clearAllExceptStreamer(streamerUsername) {
@@ -2124,7 +2349,7 @@ async function clearAllExceptStreamer(streamerUsername) {
 
 	for (const user in tasks) {
 		if (user.toLowerCase() === "id") continue;
-		if (user.toLowerCase() !== auth.channel.toLowerCase()) {
+		if (user.toLowerCase() !== streamerUsername.toLowerCase()) {
 			tasks[user].todos = [];
 		}
 	}

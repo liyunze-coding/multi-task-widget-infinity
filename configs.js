@@ -9,6 +9,8 @@ const configs = (function () {
 		pointsName: "points", // string
 		pointsPerTask: 10, // integer
 		taskSeparator: [";", ","], // array of strings
+		openQuote: '"', // string
+		closeQuote: '"', // string
 		testTasks: false, // true or false
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
@@ -303,22 +305,22 @@ const configs = (function () {
 
 	const responses = {
 		// Responses related to task addition
-		taskAdded: 'The {taskName}(s) "{task}" has been added, {user}!',
+		taskAdded: "The {taskName}(s) {task} has been added, {user}!",
 		noTaskAdded:
 			"Looks like you already hit the limit of incomplete {taskName}s, {user}",
 		noTaskContent:
 			"Try using !task the-{taskName}-you-are-working-on {user}",
 		duplicateTask:
-			"Looks like you already have the {taskName} '{message}' up there {user}!",
+			"Looks like you already have the {taskName} {message} up there {user}!",
 		taskEdited:
-			'{taskName} "{originalTask}" has been edited to "{task}" successfully, {user}',
+			'{taskName} "{originalTask}" has been edited to {task} successfully, {user}',
 		noTaskEdit: "Try doing !edit [index] [new task] {user}",
 		nowTask:
-			'{taskName} "{task}" is now the task you are working on, {user}!',
+			"{taskName} {task} is now the task you are working on, {user}!",
 
 		// Grouped by task progression responses
 		taskNext:
-			"Good job on finishing the task '{oldTask}'! Now moving onto '{newTask}', {user}!",
+			"Good job on finishing the task {oldTask}! Now moving onto {newTask}, {user}!",
 		nextNoContent: "Try using !next the-task-you-want-to-do-next {user}",
 		taskNextFailed:
 			"Unable to perform command with multiple incomplete {taskName}s, {user}!",
@@ -327,7 +329,7 @@ const configs = (function () {
 		clearedMyDone:
 			"All of your completed {taskName}s have been cleared, {user}!",
 		taskDeleted:
-			'{taskName}(s) "{task}" has been deleted successfully, {user}',
+			"{taskName}(s) {task} has been deleted successfully, {user}",
 		specifyTaskIndex:
 			"Try specifying the index of the incomplete {taskName}(s) {user}",
 		clearTasksExceptBroadcaster:
@@ -338,11 +340,11 @@ const configs = (function () {
 
 		// Grouped by task completion responses
 		taskFinished:
-			'Good job on finishing the {taskName}(s) "{task}", {user}! You have earned {pointCount} {pointName} and completed {doneCount} {taskName}(s) so far!',
+			"Good job on finishing the {taskName}(s) {task}, {user}! You have earned {pointCount} {pointName} and completed {doneCount} {taskName}(s) so far!",
 		allTasksFinished:
 			"Good job on finishing all your {taskName}s, {user}! You have completed {doneCount} {taskName}(s) so far!",
 		taskUnfinished:
-			'{taskName}(s) "{task}" has been unmarked as done, {user}!',
+			"{taskName}(s) {task} has been unmarked as done, {user}!",
 		taskAlreadyFinished:
 			"Looks like you already finished that {taskName} {user}",
 
@@ -354,7 +356,7 @@ const configs = (function () {
 		onlyOneFocus: "You can only focus one task at a time {user}!",
 		specifyFocusTask:
 			"Try specifying an incomplete {taskName} to focus {user}!",
-		taskFocused: 'Task "{task}" has been focused, {user}!',
+		taskFocused: "Task {task} has been focused, {user}!",
 
 		// Grouped by task existence responses
 		noTask: "Looks like you don't have a task up there {user}",

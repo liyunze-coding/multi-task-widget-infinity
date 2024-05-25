@@ -1,4 +1,6 @@
 var commands = configs.commands;
+var openQuote = getSetting("openQuote");
+var closeQuote = getSetting("closeQuote");
 
 async function processCommand(user, command, message, flags, extra) {
 	params = {
@@ -17,7 +19,7 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		let addedResponse = getResponse("taskAdded");
-		params.task = addRequest.body.task;
+		params.task = `${openQuote}${addRequest.body.task}${closeQuote}`;
 
 		if (addRequest.body.tasksFailedToAdd !== "") {
 			addedResponse += ` | Failed to add task(s): "${addRequest.body.tasksFailedToAdd}"`;
@@ -35,8 +37,8 @@ async function processCommand(user, command, message, flags, extra) {
 		let originalTask = editRequest.body.originalTask;
 		let newTask = editRequest.body.newTask;
 
-		params.task = newTask;
-		params.originalTask = originalTask;
+		params.task = `${openQuote}${newTask}${closeQuote}`;
+		params.originalTask = `${openQuote}${originalTask}${closeQuote}`;
 
 		respond(getResponse("taskEdited"), params);
 	} else if (getCommand("deleteTaskCommands").includes(command)) {
@@ -48,13 +50,13 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 		let deletedResponse = getResponse("taskDeleted");
 
-		let removedTasks = removeRequest.body.removedTasks;
+		let removedTasks = `${openQuote}${removeRequest.body.removedTasks}${closeQuote}`;
 		let failedTasks = removeRequest.body.failedTasks;
 
 		params.task = removedTasks;
 
 		if (failedTasks !== "") {
-			deletedResponse += ` | Failed to delete task(s): "${failedTasks}"`;
+			deletedResponse += ` | Failed to delete task(s): ${openQuote}${failedTasks}${closeQuote}`;
 		}
 
 		respond(deletedResponse, params);
@@ -69,6 +71,15 @@ async function processCommand(user, command, message, flags, extra) {
 
 			let finishedAllResponse = getResponse("allTasksFinished");
 			params.doneCount = await completedTasksCount(user);
+			finishedAllResponse = finishedAllResponse.replaceAll(
+				"{pointName}",
+				getSetting("pointsName")
+			);
+
+			finishedAllResponse = finishedAllResponse.replaceAll(
+				"{taskName}",
+				getSetting("taskName")
+			);
 
 			respond(finishedAllResponse, params);
 			return;
@@ -82,7 +93,7 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		let finishedResponse = getResponse("taskFinished");
-		params.task = finishRequest.body.markedTasks;
+		params.task = `${openQuote}${finishRequest.body.markedTasks}${closeQuote}`;
 		params.doneCount = await completedTasksCount(user);
 		params.pointCount =
 			finishRequest.body.markedTasksCount * getSetting("pointsPerTask");
@@ -113,7 +124,7 @@ async function processCommand(user, command, message, flags, extra) {
 		// task unfinished
 		let unfinishedResponse = getResponse("taskUnfinished");
 
-		params.task = unfinishRequest.body.markedTasks;
+		params.task = `${openQuote}${unfinishRequest.body.unmarkedTasks}${closeQuote}`;
 
 		if (unfinishRequest.body.failedTasks !== "") {
 			unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishRequest.body.failedTasks}"`;
@@ -124,15 +135,15 @@ async function processCommand(user, command, message, flags, extra) {
 		let nextRequest = await nextTask(user, message);
 
 		if (nextRequest.status !== 200) {
-			respond(nextRequest.body.error, params);
+			await respond(nextRequest.body.error, params);
 			return;
 		}
 
 		// task next
 		let nextResponse = getResponse("taskNext");
 
-		params.oldTask = nextRequest.body.oldTask;
-		params.newTask = nextRequest.body.newTask;
+		params.oldTask = `${openQuote}${nextRequest.body.oldTask}${closeQuote}`;
+		params.newTask = `${openQuote}${nextRequest.body.newTask}${closeQuote}`;
 
 		respond(nextResponse, params);
 	} else if (getCommand("nowTaskCommands").includes(command)) {
@@ -146,7 +157,7 @@ async function processCommand(user, command, message, flags, extra) {
 		// task now
 		let nowResponse = getResponse("nowTask");
 
-		params.task = nowRequest.body.task;
+		params.task = `${openQuote}${nowRequest.body.task}${closeQuote}`;
 
 		respond(nowResponse, params);
 	} else if (getCommand("focusTaskCommands").includes(command)) {
@@ -160,9 +171,9 @@ async function processCommand(user, command, message, flags, extra) {
 		// task focused
 		let focusedResponse = getResponse("taskFocused");
 
-		params.task = focusRequest.body.focusedTask;
+		params.task = `${openQuote}${focusRequest.body.focusedTask}${closeQuote}`;
 
-		respond(focusedResponse, params);
+		await respond(focusedResponse, params);
 	} else if (getCommand("unfocusTaskCommands").includes(command)) {
 		let unfocusRequest = await unfocusTask(user);
 
@@ -287,7 +298,7 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 		await clearMemory();
 
-		await clearAllExceptStreamer(configs.StreamerUsernames);
+		await clearAllExceptStreamer(auth.channel);
 		respond(getResponse("clearTasksExceptBroadcaster"), params);
 	} else if (getCommand("adminClearTasksCommands").includes(command)) {
 		if (!isStreamer(flags)) {
