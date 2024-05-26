@@ -841,14 +841,14 @@ async function addTask(username, userColor, task) {
 	if (taskExists) {
 		return createErrorResponse(
 			`@${username} already has this task`,
-			responses.duplicateTask
+			getResponse("duplicateTask")
 		);
 	}
 
 	if (taskIsInvalid) {
 		return createErrorResponse(
 			`@${username} empty task or reserved keyword used`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -1138,7 +1138,7 @@ async function focusTask(username, task) {
 	if (tasks[username].todos[index].done) {
 		return createErrorResponse(
 			`@${username} task is already completed`,
-			responses.specifyTaskIndex
+			getResponse("specifyTaskIndex")
 		);
 	}
 
