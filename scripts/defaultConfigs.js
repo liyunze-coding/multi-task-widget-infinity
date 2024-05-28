@@ -73,6 +73,8 @@ const defaultConfigs = (function () {
 		bodyBorderColor: "#fff", // hex or name
 		bodyBorderRadius: "5px", // px
 
+		bodyMarginTop: "0px", // px
+
 		// task
 		lineHeight: 1.5, // number
 		usernameFontWeight: "bold", // normal or bold or number

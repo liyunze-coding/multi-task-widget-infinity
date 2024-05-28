@@ -22,6 +22,7 @@
   --body-border-width: 5px;
   --body-border-color: white;
   --body-border-radius: 5px;
+  --body-margin-top: 0px;
   --line-height: 1.5;
   --username-font-weight: bold;
   --task-background-color: rgba(0, 0, 0, 0.7);
@@ -102,6 +103,7 @@ body {
   align-items: center;
   margin-left: auto;
   margin-right: auto;
+  margin-top: var(--body-margin-top);
 }
 #main-container .task-wrapper .task-container .task {
   padding: var(--task-vertical-padding) var(--task-horizontal-padding);
