@@ -22,7 +22,6 @@ DB structure:
 
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
-const responses = configs.responses;
 var openQuote = getSetting("openQuote");
 var closeQuote = getSetting("closeQuote");
 let scrolling = false;
@@ -820,14 +819,14 @@ async function addTask(username, userColor, task) {
 	if (taskExists) {
 		return createErrorResponse(
 			`@${username} already has this task`,
-			responses.duplicateTask
+			getResponse("duplicateTask")
 		);
 	}
 
 	if (taskIsInvalid) {
 		return createErrorResponse(
 			`@${username} empty task or reserved keyword used`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -836,7 +835,7 @@ async function addTask(username, userColor, task) {
 			`@${username} has reached the limit of ${getSetting(
 				"limit"
 			)} tasks`,
-			responses.noTaskAdded
+			getResponse("noTaskAdded")
 		);
 	}
 
@@ -915,14 +914,14 @@ async function nowTask(username, userColor, task) {
 	if (taskExists) {
 		return createErrorResponse(
 			`@${username} already has this task`,
-			responses.duplicateTask
+			getResponse("duplicateTask")
 		);
 	}
 
 	if (taskIsInvalid) {
 		return createErrorResponse(
 			`@${username} empty task or reserved keyword used`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -931,14 +930,14 @@ async function nowTask(username, userColor, task) {
 			`@${username} has reached the limit of ${getSetting(
 				"limit"
 			)} tasks`,
-			responses.noTaskAdded
+			getResponse("noTaskAdded")
 		);
 	}
 
 	if (taskHasSeparators) {
 		return createErrorResponse(
 			`@${username} cannot add multiple tasks with now`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -993,14 +992,14 @@ async function nowTask(username, userColor, task) {
 	if (taskExists) {
 		return createErrorResponse(
 			`@${username} already has this task`,
-			responses.duplicateTask
+			getResponse("duplicateTask")
 		);
 	}
 
 	if (taskIsInvalid) {
 		return createErrorResponse(
 			`@${username} empty task or reserved keyword used`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -1009,14 +1008,14 @@ async function nowTask(username, userColor, task) {
 			`@${username} has reached the limit of ${getSetting(
 				"limit"
 			)} tasks`,
-			responses.noTaskAdded
+			getResponse("noTaskAdded")
 		);
 	}
 
 	if (taskHasSeparators) {
 		return createErrorResponse(
 			`@${username} cannot add multiple tasks with now`,
-			responses.noTaskContent
+			getResponse("noTaskContent")
 		);
 	}
 
@@ -1053,7 +1052,7 @@ async function focusTask(username, task) {
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return createErrorResponse(
 			`@${username} has no tasks`,
-			responses.noTask
+			getResponse("noTask")
 		);
 	}
 
@@ -1061,14 +1060,14 @@ async function focusTask(username, task) {
 	if (incompleteTasks.length === 0) {
 		return createErrorResponse(
 			`@${username} has no incomplete tasks`,
-			responses.noTask
+			getResponse("noTask")
 		);
 	}
 
 	if (taskSeparator.some((separator) => task.includes(separator))) {
 		return createErrorResponse(
 			`@${username} need to specify ONLY ONE task`,
-			responses.onlyOneFocus
+			getResponse("onlyOneFocus")
 		);
 	}
 
@@ -1084,21 +1083,21 @@ async function focusTask(username, task) {
 		} else {
 			return createErrorResponse(
 				`@${username} invalid input`,
-				responses.specifyFocusTask
+				getResponse("specifyFocusTask")
 			);
 		}
 
 		if (index < 0 || index > tasks[username].todos.length - 1) {
 			return createErrorResponse(
 				`@${username} invalid input`,
-				responses.specifyFocusTask
+				getResponse("specifyFocusTask")
 			);
 		}
 	} else {
 		if (tasks[username].todos[index].done) {
 			return createErrorResponse(
 				`@${username} task is already completed`,
-				responses.specifyFocusTask
+				getResponse("specifyFocusTask")
 			);
 		}
 	}
@@ -1109,7 +1108,7 @@ async function focusTask(username, task) {
 	if (tasks[username].todos[index].focus) {
 		return createErrorResponse(
 			`@${username} task is already focused`,
-			responses.alreadyFocusedTask
+			getResponse("alreadyFocusedTask")
 		);
 	}
 
@@ -1117,7 +1116,7 @@ async function focusTask(username, task) {
 	if (tasks[username].todos[index].done) {
 		return createErrorResponse(
 			`@${username} task is already completed`,
-			responses.specifyTaskIndex
+			getResponse("specifyTaskIndex")
 		);
 	}
 
@@ -1155,7 +1154,7 @@ async function unfocusTask(username) {
 	if (!tasks[username] || tasks[username].todos.length === 0) {
 		return createErrorResponse(
 			`@${username} has no tasks`,
-			responses.noTask
+			getResponse("noTask")
 		);
 	}
 
@@ -1163,7 +1162,7 @@ async function unfocusTask(username) {
 	if (!tasks[username].todos.find((t) => t.focus)) {
 		return createErrorResponse(
 			`@${username} no tasks are focused`,
-			responses.noFocusedTask
+			getResponse("noFocusedTask")
 		);
 	}
 
@@ -1197,7 +1196,7 @@ async function removeTask(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1258,7 +1257,7 @@ async function removeTask(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
@@ -1304,7 +1303,7 @@ async function removeTask(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1314,7 +1313,7 @@ async function removeTask(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1628,7 +1627,7 @@ async function clearOwnDoneTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1664,7 +1663,7 @@ async function markTaskDone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1676,7 +1675,7 @@ async function markTaskDone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no incomplete tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1749,7 +1748,7 @@ async function markTaskDone(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
@@ -1798,7 +1797,7 @@ async function markTaskDone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1808,7 +1807,7 @@ async function markTaskDone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -1820,7 +1819,7 @@ async function markTaskDone(username, task) {
 				status: 2,
 				body: {
 					"error message": `@${username} task is already completed`,
-					error: responses.alreadyDoneTask,
+					error: getResponse("alreadyDoneTask"),
 				},
 			};
 		}
@@ -1859,7 +1858,7 @@ async function markAllTasksAsDone(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1894,7 +1893,7 @@ async function markTaskUndone(username, task) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -1954,7 +1953,7 @@ async function markTaskUndone(username, task) {
 				status: 1,
 				body: {
 					"error message": `@${username} invalid input`,
-					error: responses.specifyTaskIndex,
+					error: getResponse("specifyTaskIndex"),
 				},
 			};
 		}
@@ -1990,7 +1989,7 @@ async function markTaskUndone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -2000,7 +1999,7 @@ async function markTaskUndone(username, task) {
 					status: 1,
 					body: {
 						"error message": `@${username} invalid input`,
-						error: responses.specifyTaskIndex,
+						error: getResponse("specifyTaskIndex"),
 					},
 				};
 			}
@@ -2058,7 +2057,7 @@ async function editTask(username, message) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -2081,7 +2080,7 @@ async function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.specifyTaskIndex,
+				error: getResponse("specifyTaskIndex"),
 			},
 		};
 	}
@@ -2098,7 +2097,7 @@ async function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.noTaskContent,
+				error: getResponse("noTaskContent"),
 			},
 		};
 	}
@@ -2108,7 +2107,7 @@ async function editTask(username, message) {
 			status: 1,
 			body: {
 				"error message": `@${username} invalid input`,
-				error: responses.specifyTaskIndex,
+				error: getResponse("specifyTaskIndex"),
 			},
 		};
 	}
@@ -2217,7 +2216,7 @@ async function listTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -2229,7 +2228,7 @@ async function listTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no incomplete tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}
@@ -2275,7 +2274,7 @@ async function clearUserTasks(username) {
 			status: 0,
 			body: {
 				"error message": `@${username} has no tasks`,
-				error: responses.noTask,
+				error: getResponse("noTask"),
 			},
 		};
 	}

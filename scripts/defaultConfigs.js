@@ -51,19 +51,19 @@ const defaultConfigs = (function () {
 		headerHorizontalPadding: "10px", // px
 		headerVerticalPadding: "10px", // px
 
-		headerBackgroundColor: "#fff", // hex only
-		headerBackgroundOpacity: 1, // 0.0 - 1.0
+		headerBackgroundColor: "#000", // hex only
+		headerBackgroundOpacity: 0.9, // 0.0 - 1.0
 
 		headerBorderWidth: "0px", // px
 		headerBorderColor: "#ffffff", // hex or name
-		headerBorderRadius: "3px", // px
+		headerBorderRadius: "10px", // px
 
 		headerFontFamily: "Fredoka", // font name
 
 		headerFontSize: "25px", // px
 		headerFontWeight: "bold", // normal or bold or number
 
-		headerFontColor: "#000", // hex or name
+		headerFontColor: "#fff", // hex or name
 
 		// body
 		bodyBackgroundColor: "#fff", // hex only
@@ -76,13 +76,13 @@ const defaultConfigs = (function () {
 		// task
 		lineHeight: 1.5, // number
 		usernameFontWeight: "bold", // normal or bold or number
-		usernameColor: "pink", // hex or name or "" for twitch user color
+		usernameColor: "white", // hex or name or "" for twitch user color
 		usernameFontSize: "20px", // px
 
 		taskWidth: "100%",
 
 		taskBackgroundColor: "#000", // hex only
-		taskBackgroundOpacity: 0, // 0.0 - 1.0
+		taskBackgroundOpacity: 0.8, // 0.0 - 1.0
 
 		taskFontFamily: "Poppins", // font name
 
@@ -311,9 +311,9 @@ const defaultConfigs = (function () {
 		noTaskContent:
 			"Try using !task the-{taskName}-you-are-working-on {user}",
 		duplicateTask:
-			"Looks like you already have that {taskName} up there {user}!",
+			"Looks like you already have the {taskName} {message} up there {user}!",
 		taskEdited:
-			'{taskName} "{originalTask}" has been edited to {task} successfully, {user}',
+			"{taskName} {originalTask} has been edited to {task} successfully, {user}",
 		noTaskEdit: "Try doing !edit [index] [new task] {user}",
 		nowTask:
 			"{taskName} {task} is now the task you are working on, {user}!",
