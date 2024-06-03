@@ -124,7 +124,7 @@ async function processCommand(user, command, message, flags, extra) {
 		// task unfinished
 		let unfinishedResponse = getResponse("taskUnfinished");
 
-		params.task = `${openQuote}${unfinishRequest.body.unmarkedTasks}${closeQuote}`;
+		params.task = `${openQuote}${unfinishRequest.body.markedTasks}${closeQuote}`;
 
 		if (unfinishRequest.body.failedTasks !== "") {
 			unfinishedResponse += ` | Failed to unfinish task(s): "${unfinishRequest.body.failedTasks}"`;
