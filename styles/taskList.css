@@ -17,12 +17,13 @@
   --header-font-family: sans-serif;
   --header-font-color: white;
   --header-font-weight: bold;
-  --task-count-margin-right: 10px;
+  --task-count-margin-right: 0px;
   --body-background-color: rgba(0, 0, 0, 0.7);
   --body-border-width: 5px;
   --body-border-color: white;
   --body-border-radius: 5px;
   --body-margin-top: 0px;
+  --number-of-lines: 1;
   --line-height: 1.5;
   --username-font-weight: bold;
   --task-background-color: rgba(0, 0, 0, 0.7);
@@ -43,10 +44,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-body {
-  background: gray;
 }
 
 #main-container {
@@ -118,14 +115,26 @@ body {
   font-size: var(--username-font-size);
 }
 #main-container .task-wrapper .task-container .task .user-tasks {
-  list-style-position: inside;
+  counter-reset: item;
 }
 #main-container .task-wrapper .task-container .task .user-tasks .todo {
+  display: flex;
+}
+#main-container .task-wrapper .task-container .task .user-tasks .todo:before {
+  counter-increment: item;
+  content: counters(item, ".") ". ";
+  margin-right: 5px;
+}
+#main-container .task-wrapper .task-container .task .user-tasks .todo .content {
+  display: -webkit-box;
+  -webkit-line-clamp: var(--number-of-lines);
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 #main-container .task-wrapper .task-container .task .user-tasks .done {
+  color: var(--done-task-font-color);
+}
+#main-container .task-wrapper .task-container .task .user-tasks .done .content {
   text-decoration: line-through;
   color: var(--done-task-font-color);
 }
@@ -136,4 +145,5 @@ body {
   border-radius: var(--focus-task-border-radius);
   width: -moz-fit-content;
   width: fit-content;
+  margin-left: calc(var(--focus-task-horizontal-padding) * -1);
 }/*# sourceMappingURL=taskList.css.map */

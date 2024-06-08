@@ -2424,7 +2424,12 @@ async function renderTaskListToDOM() {
 					taskElement.classList.add("focus");
 				}
 
-				taskElement.innerText = task.text;
+				const taskContent = document.createElement("div");
+				taskContent.classList.add("content");
+
+				taskContent.innerText = task.text;
+
+				taskElement.appendChild(taskContent);
 				olListDiv.appendChild(taskElement);
 			}
 		}

@@ -76,6 +76,7 @@ const defaultConfigs = (function () {
 		bodyMarginTop: "0px", // px
 
 		// task
+		numberOfLines: 1, // number
 		lineHeight: 1.5, // number
 		usernameFontWeight: "bold", // normal or bold or number
 		usernameColor: "white", // hex or name or "" for twitch user color
