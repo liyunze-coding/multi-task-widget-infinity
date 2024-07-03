@@ -55,6 +55,7 @@
   background-color: var(--task-list-background-color);
   border: solid var(--task-list-border-width) var(--task-list-border-color);
   border-radius: var(--task-list-border-radius);
+  transition: opacity 0.5s ease-in-out;
 }
 #main-container .header {
   display: flex;

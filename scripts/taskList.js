@@ -24,6 +24,7 @@ const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
 var openQuote = getSetting("openQuote");
 var closeQuote = getSetting("closeQuote");
+let visible = false;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = getSetting("taskSeparator");
@@ -130,9 +131,6 @@ async function transferLocalStorageToIndexedDB() {
 	}
 
 	console.log("Transfer complete");
-
-	localStorage.removeItem("tasks");
-	localStorage.removeItem("counts");
 
 	await renderTaskListToDOM();
 }
@@ -366,10 +364,9 @@ async function resetDB() {
 async function setupDB() {
 	const keys = ["tasks", "counts", "taskmaster"];
 	const defaultValues = [
-		{ ID: "tasks" },
-		{ ID: "counts", users: {} },
+		{},
+		{ users: {} },
 		{
-			ID: "taskmaster",
 			users: {},
 			startDate: new Date(),
 			taskMasterCompleteCount: 0,
@@ -380,8 +377,6 @@ async function setupDB() {
 		let value = await DBHandler.get(keys[i]);
 		if (!value) {
 			value = defaultValues[i];
-		} else if (!value.ID) {
-			value.ID = keys[i];
 		}
 		await DBHandler.set(keys[i], value);
 	}
@@ -2062,6 +2057,8 @@ async function editTask(username, message) {
 		};
 	}
 
+	let focusedTask = tasks[username].todos.find((t) => t.focus);
+
 	// example 'message': 1 new task
 	let index = parseInt(message.split(" ")[0]) - 1; // ACTUAL INDEX
 
@@ -2069,10 +2066,14 @@ async function editTask(username, message) {
 		(t) => !t.done
 	).length;
 
-	if (incompleteTaskCount === 1 && index !== 0) {
-		// find index of incomplete task
-		index = tasks[username].todos.findIndex((t) => !t.done);
+	if ((incompleteTaskCount === 1 || focusedTask) && index !== 0) {
 		noSpecifiedIndex = true;
+		if (incompleteTaskCount === 1) {
+			// find index of incomplete task
+			index = tasks[username].todos.findIndex((t) => !t.done);
+		} else if (focusedTask) {
+			index = tasks[username].todos.findIndex((t) => t.focus);
+		}
 	}
 
 	if (isNaN(index)) {
@@ -2370,6 +2371,9 @@ async function renderTaskListToDOM() {
 	const tasks = await DBHandler.get("tasks");
 
 	const taskContainers = document.querySelectorAll(".task-container");
+	console.log(getSetting("hideWhenNoTasks"), tasks);
+
+	let hasTasks = false;
 
 	taskContainers.forEach((taskList) => {
 		taskList.innerHTML = "";
@@ -2431,6 +2435,8 @@ async function renderTaskListToDOM() {
 
 				taskElement.appendChild(taskContent);
 				olListDiv.appendChild(taskElement);
+
+				hasTasks = true;
 			}
 		}
 
@@ -2450,6 +2456,17 @@ async function renderTaskListToDOM() {
 		taskListMemory.doneTaskCount = completedTasksCount;
 		taskListMemory.totalTaskCount = totalTaskCount;
 	});
+
+	if (getSetting("hideWhenNoTasks") && !hasTasks) {
+		// #main-container 0 opacity
+		document.querySelector("#main-container").style.opacity = "0";
+		visible = false;
+		console.log("hiding");
+	} else if (getSetting("hideWhenNoTasks") && hasTasks && !visible) {
+		// #main-container 1 opacity
+		document.querySelector("#main-container").style.opacity = "1";
+		visible = true;
+	}
 
 	await DBHandler.set("tasks", tasks);
 

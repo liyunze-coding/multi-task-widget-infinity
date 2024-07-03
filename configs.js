@@ -16,6 +16,7 @@ const configs = (function () {
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
 		enableTaskMaster: true, // true or false
+		hideWhenNoTasks: true, // true or false
 	};
 
 	const animation = {
