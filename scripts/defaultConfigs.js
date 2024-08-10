@@ -127,6 +127,7 @@ const defaultConfigs = (function () {
 			"!task",
 			"!add",
 			"!todo",
+			"!tasks",
 			"!a",
 		],
 
@@ -276,14 +277,7 @@ const defaultConfigs = (function () {
 		resetTaskMasterCommands: ["!resettaskmaster"],
 
 		// Help commands - please add commands in the exact format
-		helpCommands: [
-			"!taskh",
-			"!taskhelp",
-			"!htask",
-			"!helptask",
-			"!tasks",
-			"!help",
-		],
+		helpCommands: ["!taskh", "!taskhelp", "!htask", "!helptask", "!help"],
 
 		// Admin clear all except streamer - please add commands following the exact format
 		adminClearNotStreamerCommands: [
