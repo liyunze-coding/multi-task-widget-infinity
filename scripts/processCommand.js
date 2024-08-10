@@ -135,6 +135,7 @@ async function processCommand(user, command, message, flags, extra) {
 		let nextRequest = await nextTask(user, message);
 
 		if (nextRequest.status !== 200) {
+			params.task = `${openQuote}${nextRequest.body.task}${closeQuote}`;
 			await respond(nextRequest.body.error, params);
 			return;
 		}
@@ -159,7 +160,37 @@ async function processCommand(user, command, message, flags, extra) {
 
 		params.task = `${openQuote}${nowRequest.body.task}${closeQuote}`;
 
-		respond(nowResponse, params);
+		await respond(nowResponse, params);
+	} else if (getCommand("logTaskCommands").includes(command)) {
+		let logRequest = await logTask(user, extra.userColor, message);
+
+		if (logRequest.status !== 200) {
+			respond(logRequest.body.error, params);
+			return;
+		}
+
+		// task logged
+		let loggedResponse = getResponse("taskLogged");
+
+		params.task = `${openQuote}${logRequest.body.task}${closeQuote}`;
+
+		if (logRequest.body.tasksFailedToLog !== "") {
+			loggedResponse += ` | Failed to log task(s): ${openQuote}${logRequest.body.tasksFailedToLog}${closeQuote}`;
+		}
+
+		await respond(loggedResponse, params);
+
+		// let addRequest = await addTask(user, extra.userColor, message);
+
+		// if (addRequest.status !== 200) {
+		// 	respond(addRequest.body.error, params);
+		// 	return;
+		// }
+
+		// let addedResponse = getResponse("taskAdded");
+		// params.task = `${openQuote}${addRequest.body.task}${closeQuote}`;
+
+		// respond(addedResponse, params);
 	} else if (getCommand("focusTaskCommands").includes(command)) {
 		let focusRequest = await focusTask(user, message);
 
@@ -174,6 +205,20 @@ async function processCommand(user, command, message, flags, extra) {
 		params.task = `${openQuote}${focusRequest.body.focusedTask}${closeQuote}`;
 
 		await respond(focusedResponse, params);
+	} else if (getCommand("focusedTaskCommands").includes(command)) {
+		let focusedRequest = await focusedTask(user);
+
+		if (focusedRequest.status !== 200) {
+			respond(focusedRequest.body.error, params);
+			return;
+		}
+
+		// task focused
+		let focusedResponse = getResponse("focusedTask");
+
+		params.task = `${openQuote}${focusedRequest.body.focusedTask}${closeQuote}`;
+
+		await respond(focusedResponse, params);
 	} else if (getCommand("unfocusTaskCommands").includes(command)) {
 		let unfocusRequest = await unfocusTask(user);
 
@@ -186,52 +231,64 @@ async function processCommand(user, command, message, flags, extra) {
 		let unfocusedResponse = getResponse("clearFocused");
 
 		respond(unfocusedResponse, params);
-	} else if (getCommand("checkCommands").includes(command)) {
-		var checkingUser = user;
+	} else if (
+		getCommand("checkCommands").includes(command) ||
+		getCommand("checkCompletedCommands").includes(command)
+	) {
+		let completed = getCommand("checkCompletedCommands").includes(command);
+
 		if (message === "") {
-			let checkRequest = await checkTasks(user);
+			let checkRequest = await checkTasks(user, completed);
 			if (checkRequest.status !== 200) {
 				// no tasks
 				respond(checkRequest.body.error, params);
 				return;
 			}
 
-			// array of incomplete tasks
-			let incompleteTasks = checkRequest.body.reply.split(" | ");
+			// array of filtered tasks
+			let filteredTasks = checkRequest.body.reply.split(" | ");
 
 			// respond every 10 tasks
-			for (let i = 0; i < incompleteTasks.length; i += 10) {
-				let tasks = incompleteTasks.slice(i, i + 10);
+			for (let i = 0; i < filteredTasks.length; i += 10) {
+				let tasks = filteredTasks.slice(i, i + 10);
 				params.tasks = tasks
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
 
+				var checkingUser = user;
 				params.checkingUser = checkingUser;
 
-				await respond(`{checkingUser} {tasks}`, params);
+				await respond(`{tasks}`, params);
 				await sleep(200);
 			}
-
-			// return respond(checkRequest.body.reply, params);
 		} else {
 			let mentioned = message.replace("@", "");
-			let checkRequest = await checkTasks(mentioned);
+
+			if (mentioned.toLowerCase() === "id") {
+				await respond(getResponse("noTaskA"), params);
+				return;
+			}
+
+			let checkRequest = await checkTasks(mentioned, completed);
+
+			// array of incomplete tasks
+			let filteredTasks = checkRequest.body.reply.split(" | ");
 
 			if (checkRequest.status !== 200) {
 				// no tasks
-				respond(checkRequest.body.error, params);
+				respond(getResponse("noTaskA"), params);
 
 				return;
 			}
-			// array of incomplete tasks
-			let incompleteTasks = checkRequest.body.reply.split(" | ");
 
 			// respond every 10 tasks
-			for (let i = 0; i < incompleteTasks.length; i += 10) {
-				let tasks = incompleteTasks.slice(i, i + 10);
+			for (let i = 0; i < filteredTasks.length; i += 10) {
+				let tasks = filteredTasks.slice(i, i + 10);
 				params.tasks = tasks
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
+
+				var checkingUser = user;
 
 				params.checkingUser = checkingUser;
 

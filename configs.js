@@ -194,9 +194,11 @@ const configs = (function () {
 			"!next",
 			"!n",
 		],
+		logTaskCommands: ["!log", "!tasklog", "!logtask", "!logtasks"],
 
 		// focus task commands - please add commands in the exact format
 		focusTaskCommands: ["!focus", "!taskfocus", "!focustask"],
+		focusedTaskCommands: ["!focused", "!ongoing", "!checkfocus"],
 		unfocusTaskCommands: ["!unfocus", "!taskunfocus", "!unfocustask"],
 
 		nowTaskCommands: ["!now", "!tasknow", "!nowtask"],
@@ -210,6 +212,14 @@ const configs = (function () {
 			"!mytask",
 			"!check",
 			"!mytasks",
+			"!c",
+		],
+
+		checkCompletedCommands: [
+			"!completed",
+			"!taskcompleted",
+			"!donetasks",
+			"!completedtasks",
 		],
 
 		// List tasks commands - please add commands in the exact format
@@ -315,12 +325,13 @@ const configs = (function () {
 		noTaskContent:
 			"Try using !task the-{taskName}-you-are-working-on {user}",
 		duplicateTask:
-			"Looks like you already have the {taskName} {message} up there {user}!",
+			"Looks like you already have the {taskName} {task} up there {user}!",
 		taskEdited:
 			"{taskName} {originalTask} has been edited to {task} successfully, {user}",
 		noTaskEdit: "Try doing !edit [index] [new task] {user}",
 		nowTask:
 			"{taskName} {task} is now the task you are working on, {user}!",
+		taskLogged: "Task(s) {task} has been logged, {user}!",
 
 		// Grouped by task progression responses
 		taskNext:
@@ -361,6 +372,7 @@ const configs = (function () {
 		specifyFocusTask:
 			"Try specifying an incomplete {taskName} to focus {user}!",
 		taskFocused: "Task {task} has been focused, {user}!",
+		focusedTask: "{user} Focused {taskName}: {task}",
 
 		// Grouped by task existence responses
 		noTask: "Looks like you don't have a task up there {user}",

@@ -839,7 +839,8 @@ async function addTask(username, userColor, task) {
 				.split(taskSeparator.find((char) => task.includes(char)))
 				.map((t) => t.trim())
 		: [task];
-	const tasksFailedToAdd = [];
+	let tasksFailedToAdd = [];
+	let addedTaskIndices = []; // new array to store indices of added tasks
 
 	tasksToAdd.forEach((t) => {
 		if (
@@ -848,6 +849,9 @@ async function addTask(username, userColor, task) {
 			!isInt(t)
 		) {
 			tasks[username].todos.push({ text: t, done: false, focus: false });
+
+			let index = tasks[username].todos.length - 1;
+			addedTaskIndices.push({ index: index, task: t }); // store index of added task
 			taskListMemory.totalTaskCount++;
 		} else {
 			tasksFailedToAdd.push(t);
@@ -859,10 +863,14 @@ async function addTask(username, userColor, task) {
 		await renderTaskListToDOM();
 	}
 
+	let displayedTasksAdded = addedTaskIndices.map((t) => {
+		return `(${t.index + 1}) ${t.task}`;
+	});
+
 	return {
 		status: 200,
 		body: {
-			task: tasksToAdd.join(`${closeQuote}, ${openQuote}`),
+			task: displayedTasksAdded.join(`${closeQuote}, ${openQuote}`),
 			tasksFailedToAdd:
 				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
 		},
@@ -888,6 +896,14 @@ function createErrorResponse(errorMessage, errorType) {
  * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
 async function nowTask(username, userColor, task) {
+	// if task is integer, return error
+	if (isInt(task)) {
+		return createErrorResponse(
+			`@${username} invalid input`,
+			getResponse("noTaskContent")
+		);
+	}
+
 	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		tasks[username] = {
@@ -941,6 +957,7 @@ async function nowTask(username, userColor, task) {
 	});
 
 	tasks[username].todos.push({ text: task, done: false, focus: true });
+	let index = tasks[username].todos.length;
 	taskListMemory.totalTaskCount++;
 
 	await DBHandler.set("tasks", tasks);
@@ -951,7 +968,7 @@ async function nowTask(username, userColor, task) {
 	return {
 		status: 200,
 		body: {
-			task: task,
+			task: `(${index}) ${task}`,
 		},
 	};
 }
@@ -1288,11 +1305,18 @@ async function removeTask(username, task) {
 			(t) => t.text.toLowerCase() === task.toLowerCase()
 		);
 
+		let focusedTask = tasks[username].todos.find((t) => t.focus);
+
 		if (index === -1) {
 			if (isInt(task)) {
 				index = parseInt(task) - 1; // ACTUAL INDEX
 			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
+			} else if (focusedTask) {
+				index = tasks[username].todos.findIndex(
+					(t) =>
+						t.text.toLowerCase() === focusedTask.text.toLowerCase()
+				);
 			} else {
 				return {
 					status: 1,
@@ -1458,10 +1482,14 @@ async function nextTask(username, task) {
 
 		// if old task is the same as an existing task, return 1
 		if (textTaskExists) {
-			if (tasks[username].todos.find((t) => t.text === task)) {
+			let existingTextTask = tasks[username].todos.find(
+				(t) => t.text.toLowerCase() === task.toLowerCase()
+			);
+			if (existingTextTask.done === true) {
 				return {
 					status: 1,
 					body: {
+						task: task,
 						"error message": `@${username} already has this task`,
 						error: getResponse("duplicateTask"),
 					},
@@ -1472,6 +1500,7 @@ async function nextTask(username, task) {
 				return {
 					status: 1,
 					body: {
+						task: task,
 						"error message": `@${username} already finished this task`,
 						error: getResponse("taskAlreadyFinished"),
 					},
@@ -1519,6 +1548,7 @@ async function nextTask(username, task) {
 			return {
 				status: 1,
 				body: {
+					task: task,
 					"error message": `@${username} invalid input`,
 					error: getResponse("specifyTaskIndex"),
 				},
@@ -1821,6 +1851,8 @@ async function markTaskDone(username, task) {
 
 		task = tasks[username].todos[index].text;
 		tasks[username].todos[index].done = true;
+		tasks[username].todos[index].focus = false;
+
 		await addDoneCount(username, 1);
 
 		await DBHandler.set("tasks", tasks);
@@ -2057,16 +2089,21 @@ async function editTask(username, message) {
 		};
 	}
 
-	let focusedTask = tasks[username].todos.find((t) => t.focus);
+	let focusedTask = tasks[username].todos.find((t) => t.focus && !t.done);
 
 	// example 'message': 1 new task
-	let index = parseInt(message.split(" ")[0]) - 1; // ACTUAL INDEX
+	let index = -1;
+
+	if (/^\d+$/.test(message.split(" ")[0])) {
+		// The first part of the message is an integer
+		index = parseInt(message.split(" ")[0]) - 1; // ACTUAL INDEX
+	}
 
 	let incompleteTaskCount = tasks[username].todos.filter(
 		(t) => !t.done
 	).length;
 
-	if ((incompleteTaskCount === 1 || focusedTask) && index !== 0) {
+	if ((incompleteTaskCount === 1 || focusedTask) && index === -1) {
 		noSpecifiedIndex = true;
 		if (incompleteTaskCount === 1) {
 			// find index of incomplete task
@@ -2132,12 +2169,132 @@ async function editTask(username, message) {
 }
 
 /**
+ * Retrieves the focused task for a given user.
+ *
+ * @async
+ * @function focusedTask
+ * @param {string} username - The username of the user whose focused task is to be retrieved.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the status and body.
+ * The body contains either the focused task text or an error message.
+ * @throws Will throw an error if there is an issue with the database retrieval.
+ */
+async function focusedTask(username) {
+	const tasks = await DBHandler.get("tasks");
+
+	if (!tasks[username] || tasks[username].todos.length === 0) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no tasks`,
+				error: getResponse("noTask"),
+			},
+		};
+	}
+
+	let focusedTask = tasks[username].todos.find((t) => t.focus);
+
+	// Get index of focused task
+	let index = tasks[username].todos.findIndex((t) => t.focus);
+
+	if (!focusedTask) {
+		return {
+			status: 0,
+			body: {
+				"error message": `@${username} has no focused task`,
+				error: getResponse("noFocusedTask"),
+			},
+		};
+	}
+
+	return {
+		status: 200,
+		body: {
+			focusedTask: `(${index + 1}) ${focusedTask.text}`,
+		},
+	};
+}
+
+async function logTask(username, userColor, task) {
+	// Basically a shortcut of add task -> mark task done
+	const tasks = await DBHandler.get("tasks");
+	if (!tasks[username]) {
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
+	}
+
+	const taskExists = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase()
+	);
+	const taskIsInvalid =
+		!task || !task.trim() || task.toLowerCase() === "all" || isInt(task);
+
+	if (taskExists) {
+		return createErrorResponse(
+			`@${username} already has this task`,
+			getResponse("duplicateTask")
+		);
+	}
+
+	if (taskIsInvalid) {
+		return createErrorResponse(
+			`@${username} empty task or reserved keyword used`,
+			getResponse("noTaskContent")
+		);
+	}
+
+	const tasksToAdd = taskSeparator.some((char) => task.includes(char))
+		? task
+				.split(taskSeparator.find((char) => task.includes(char)))
+				.map((t) => t.trim())
+		: [task];
+	let tasksFailedToAdd = [];
+	let addedTaskIndices = []; // new array to store indices of added tasks
+
+	tasksToAdd.forEach((t) => {
+		if (
+			t &&
+			!tasks[username].todos.find((task) => task.text === t) &&
+			!isInt(t)
+		) {
+			tasks[username].todos.push({ text: t, done: true, focus: false });
+
+			let index = tasks[username].todos.length - 1;
+			addedTaskIndices.push({ index: index, task: t }); // store index of added task
+			taskListMemory.totalTaskCount++;
+		} else {
+			tasksFailedToAdd.push(t);
+		}
+	});
+
+	await DBHandler.set("tasks", tasks);
+	if (!scrolling) {
+		await renderTaskListToDOM();
+	}
+
+	let displayedTasksAdded = addedTaskIndices.map((t) => {
+		return `(${t.index + 1}) ${t.task}`;
+	});
+
+	return {
+		status: 200,
+		body: {
+			task: displayedTasksAdded.join(`${closeQuote}, ${openQuote}`),
+			tasksFailedToLog:
+				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
+		},
+	};
+}
+
+/**
  * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
  *
  * @param {string} name - The name of the user whose tasks are to be checked.
  * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
  */
-async function checkTasks(name) {
+async function checkTasks(name, completed = false) {
 	const tasks = await DBHandler.get("tasks");
 
 	// Go through keys of tasks, find match of lowercased username
@@ -2166,24 +2323,26 @@ async function checkTasks(name) {
 	}
 
 	// filter completed tasks
-	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-	const completedTasks = tasks[username].todos.filter((t) => t.done);
+	const filteredTasks = completed
+		? tasks[username].todos.filter((t) => t.done)
+		: tasks[username].todos.filter((t) => !t.done);
+
+	let label = completed ? "completed" : "incomplete";
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	let reply = `${name}'s incomplete {taskName}s (${incompleteTasks.length}) : `;
+	let reply = `${name}'s ${label} {taskName}s (${filteredTasks.length}) : `;
 	let taskIndex;
-	for (let i = 0; i < incompleteTasks.length; i++) {
+	for (let i = 0; i < filteredTasks.length; i++) {
 		// get index of task by task name
 		taskIndex =
 			tasks[username].todos.findIndex(
 				(t) =>
-					t.text.toLowerCase() ===
-					incompleteTasks[i].text.toLowerCase()
+					t.text.toLowerCase() === filteredTasks[i].text.toLowerCase()
 			) + 1;
 
-		reply += `${taskIndex}. ${
-			incompleteTasks[i].focus ? "(ongoing)" : ""
-		} ${incompleteTasks[i].text} | `;
+		reply += `${taskIndex}. ${filteredTasks[i].focus ? "(ongoing)" : ""} ${
+			filteredTasks[i].text
+		} | `;
 	}
 	reply = reply.slice(0, -3);
 
@@ -2371,7 +2530,6 @@ async function renderTaskListToDOM() {
 	const tasks = await DBHandler.get("tasks");
 
 	const taskContainers = document.querySelectorAll(".task-container");
-	console.log(getSetting("hideWhenNoTasks"), tasks);
 
 	let hasTasks = false;
 
@@ -2461,7 +2619,6 @@ async function renderTaskListToDOM() {
 		// #main-container 0 opacity
 		document.querySelector("#main-container").style.opacity = "0";
 		visible = false;
-		console.log("hiding");
 	} else if (getSetting("hideWhenNoTasks") && hasTasks && !visible) {
 		// #main-container 1 opacity
 		document.querySelector("#main-container").style.opacity = "1";
