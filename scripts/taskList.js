@@ -418,8 +418,11 @@ async function completedTasksCount(username) {
  * @param {string} username - The name of the user whose tasks are to be counted.
  * @returns {number} The total number of tasks for the user.
  */
-function getUserTotalTaskCount(username) {
-	return incompleteTasksCount(username) + completedTasksCount(username);
+async function getUserTotalTaskCount(username) {
+	return (
+		(await incompleteTasksCount(username)) +
+		(await completedTasksCount(username))
+	);
 }
 
 /**
@@ -807,9 +810,12 @@ async function addTask(username, userColor, task) {
 	);
 	const taskIsInvalid =
 		!task || !task.trim() || task.toLowerCase() === "all" || isInt(task);
+	const taskLimit = getSetting("limit");
+	const limitEnabled = getSetting("enableLimit");
+
+	let incompleteTaskCount = await incompleteTasksCount(username);
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= getSetting("limit") &&
-		getSetting("enableLimit");
+		incompleteTaskCount >= taskLimit && limitEnabled;
 
 	if (taskExists) {
 		return createErrorResponse(
@@ -846,13 +852,15 @@ async function addTask(username, userColor, task) {
 		if (
 			t &&
 			!tasks[username].todos.find((task) => task.text === t) &&
-			!isInt(t)
+			!isInt(t) &&
+			!(incompleteTaskCount >= taskLimit && limitEnabled)
 		) {
 			tasks[username].todos.push({ text: t, done: false, focus: false });
 
 			let index = tasks[username].todos.length - 1;
 			addedTaskIndices.push({ index: index, task: t }); // store index of added task
 			taskListMemory.totalTaskCount++;
+			incompleteTaskCount++;
 		} else {
 			tasksFailedToAdd.push(t);
 		}
@@ -918,7 +926,7 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= getSetting("limit") &&
+		(await incompleteTasksCount(username)) >= getSetting("limit") &&
 		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
@@ -997,7 +1005,7 @@ async function nowTask(username, userColor, task) {
 	);
 	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
 	const userHasReachedTaskLimit =
-		incompleteTasksCount(username) >= getSetting("limit") &&
+		(await incompleteTasksCount(username)) >= getSetting("limit") &&
 		getSetting("enableLimit");
 	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
 
