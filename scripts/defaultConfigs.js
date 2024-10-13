@@ -17,6 +17,8 @@ const defaultConfigs = (function () {
 		displayTaskCount: true, // true or false
 		enableTaskMaster: true, // true or false
 		hideWhenNoTasks: true, // true or false
+		taskCharacterLimit: 15, // integer
+		taskCharacterLimitEnabled: false, // true or false
 	};
 
 	const animation = {

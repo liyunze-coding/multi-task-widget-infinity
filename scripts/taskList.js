@@ -796,77 +796,15 @@ async function resetUsersCount() {
  * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
 async function addTask(username, userColor, task) {
-	const tasks = await DBHandler.get("tasks");
-	if (!tasks[username]) {
-		tasks[username] = {
-			todos: [],
-			done: [],
-			userColor: userColor,
-		};
+	let addTaskFunction = await _addTask(username, userColor, task);
+
+	if (addTaskFunction.status !== 200) {
+		return addTaskFunction;
 	}
 
-	const taskExists = tasks[username].todos.find(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
-	const taskIsInvalid =
-		!task || !task.trim() || task.toLowerCase() === "all" || isInt(task);
-	const taskLimit = getSetting("limit");
-	const limitEnabled = getSetting("enableLimit");
+	let addedTaskIndices = addTaskFunction.body.addedTaskIndices;
+	let tasksFailedToAdd = addTaskFunction.body.tasksFailedToAdd;
 
-	let incompleteTaskCount = await incompleteTasksCount(username);
-	const userHasReachedTaskLimit =
-		incompleteTaskCount >= taskLimit && limitEnabled;
-
-	if (taskExists) {
-		return createErrorResponse(
-			`@${username} already has this task`,
-			getResponse("duplicateTask")
-		);
-	}
-
-	if (taskIsInvalid) {
-		return createErrorResponse(
-			`@${username} empty task or reserved keyword used`,
-			getResponse("noTaskContent")
-		);
-	}
-
-	if (userHasReachedTaskLimit) {
-		return createErrorResponse(
-			`@${username} has reached the limit of ${getSetting(
-				"limit"
-			)} tasks`,
-			getResponse("noTaskAdded")
-		);
-	}
-
-	const tasksToAdd = taskSeparator.some((char) => task.includes(char))
-		? task
-				.split(taskSeparator.find((char) => task.includes(char)))
-				.map((t) => t.trim())
-		: [task];
-	let tasksFailedToAdd = [];
-	let addedTaskIndices = []; // new array to store indices of added tasks
-
-	tasksToAdd.forEach((t) => {
-		if (
-			t &&
-			!tasks[username].todos.find((task) => task.text === t) &&
-			!isInt(t) &&
-			!(incompleteTaskCount >= taskLimit && limitEnabled)
-		) {
-			tasks[username].todos.push({ text: t, done: false, focus: false });
-
-			let index = tasks[username].todos.length - 1;
-			addedTaskIndices.push({ index: index, task: t }); // store index of added task
-			taskListMemory.totalTaskCount++;
-			incompleteTaskCount++;
-		} else {
-			tasksFailedToAdd.push(t);
-		}
-	});
-
-	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		await renderTaskListToDOM();
 	}
@@ -881,6 +819,131 @@ async function addTask(username, userColor, task) {
 			task: displayedTasksAdded.join(`${closeQuote}, ${openQuote}`),
 			tasksFailedToAdd:
 				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
+		},
+	};
+}
+
+async function _addTask(username, userColor, task, oneTaskOnly = false) {
+	const tasks = await DBHandler.get("tasks");
+	if (!tasks[username]) {
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
+	}
+	let tasksFailedToAdd = [];
+	let addedTaskIndices = []; // new array to store indices of added tasks
+
+	if (taskSeparator.some((char) => task.includes(char))) {
+		if (oneTaskOnly) {
+			return createErrorResponse(
+				`@${username} cannot add multiple tasks with now`,
+				getResponse("noTaskContent")
+			);
+		}
+		const tasksToAdd = task
+			.split(taskSeparator.find((char) => task.includes(char)))
+			.map((t) => t.trim());
+
+		tasksToAdd.forEach((t) => {
+			if (
+				(t &&
+					!tasks[username].todos.find((task) => task.text === t) &&
+					!isInt(t) &&
+					!getSetting("taskCharacterLimitEnabled")) ||
+				t.length <= getSetting("taskCharacterLimit")
+			) {
+				tasks[username].todos.push({
+					text: t,
+					done: false,
+					focus: false,
+				});
+
+				let index = tasks[username].todos.length - 1;
+				addedTaskIndices.push({ index: index, task: t }); // store index of added task
+				taskListMemory.totalTaskCount++;
+			} else {
+				console.log(
+					!tasks[username].todos.find((task) => task.text === t)
+				);
+				console.log(!isInt(t));
+				console.log(!getSetting("taskCharacterLimitEnabled"));
+				console.log(task.length <= getSetting("taskCharacterLimit"));
+				tasksFailedToAdd.push(t);
+			}
+		});
+
+		await DBHandler.set("tasks", tasks);
+	} else {
+		const taskExists = tasks[username].todos.find(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		);
+		const taskIsInvalid =
+			!task ||
+			!task.trim() ||
+			task.toLowerCase() === "all" ||
+			isInt(task);
+
+		const taskTooLong =
+			getSetting("taskCharacterLimitEnabled") &&
+			task.length > getSetting("taskCharacterLimit");
+
+		const userHasReachedTaskLimit =
+			(await incompleteTasksCount(username)) >= getSetting("limit") &&
+			getSetting("enableLimit");
+
+		if (taskExists) {
+			return createErrorResponse(
+				`@${username} already has this task`,
+				getResponse("duplicateTask")
+			);
+		}
+
+		if (taskIsInvalid) {
+			return createErrorResponse(
+				`@${username} empty task or reserved keyword used`,
+				getResponse("noTaskContent")
+			);
+		}
+
+		if (userHasReachedTaskLimit) {
+			return createErrorResponse(
+				`@${username} has reached the limit of ${getSetting(
+					"limit"
+				)} tasks`,
+				getResponse("noTaskAdded")
+			);
+		}
+
+		if (taskTooLong) {
+			return createErrorResponse(
+				`@${username}'s task is too long`,
+				getResponse("taskTooLong")
+			);
+		}
+
+		addedTaskIndices = [
+			{
+				index: tasks[username].todos.length,
+				task: task,
+			},
+		];
+
+		tasks[username].todos.push({
+			text: task,
+			done: false,
+			focus: false,
+		});
+
+		await DBHandler.set("tasks", tasks);
+	}
+
+	return {
+		status: 200,
+		body: {
+			addedTaskIndices: addedTaskIndices,
+			tasksFailedToAdd: tasksFailedToAdd,
 		},
 	};
 }
@@ -905,70 +968,22 @@ function createErrorResponse(errorMessage, errorType) {
  */
 async function nowTask(username, userColor, task) {
 	// if task is integer, return error
-	if (isInt(task)) {
-		return createErrorResponse(
-			`@${username} invalid input`,
-			getResponse("noTaskContent")
-		);
+	let addTaskFunction = await _addTask(username, userColor, task, true);
+
+	let addedTaskIndices = addTaskFunction.body.addedTaskIndices;
+	let addedTaskData = addedTaskIndices[0];
+
+	if (addTaskFunction.status !== 200) {
+		return addTaskFunction;
 	}
 
-	const tasks = await DBHandler.get("tasks");
-	if (!tasks[username]) {
-		tasks[username] = {
-			todos: [],
-			done: [],
-			userColor: userColor,
-		};
+	// focus on it
+	let focusTaskFunction = await focusTask(username, addedTaskData.task);
+
+	if (focusTaskFunction.status !== 200) {
+		return focusTaskFunction;
 	}
 
-	const taskExists = tasks[username].todos.find(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
-	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
-	const userHasReachedTaskLimit =
-		(await incompleteTasksCount(username)) >= getSetting("limit") &&
-		getSetting("enableLimit");
-	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
-
-	if (taskExists) {
-		return createErrorResponse(
-			`@${username} already has this task`,
-			getResponse("duplicateTask")
-		);
-	}
-
-	if (taskIsInvalid) {
-		return createErrorResponse(
-			`@${username} empty task or reserved keyword used`,
-			getResponse("noTaskContent")
-		);
-	}
-
-	if (userHasReachedTaskLimit) {
-		return createErrorResponse(
-			`@${username} has reached the limit of ${getSetting(
-				"limit"
-			)} tasks`,
-			getResponse("noTaskAdded")
-		);
-	}
-
-	if (taskHasSeparators) {
-		return createErrorResponse(
-			`@${username} cannot add multiple tasks with now`,
-			getResponse("noTaskContent")
-		);
-	}
-
-	tasks[username].todos.forEach((task) => {
-		task.focus = false;
-	});
-
-	tasks[username].todos.push({ text: task, done: false, focus: true });
-	let index = tasks[username].todos.length;
-	taskListMemory.totalTaskCount++;
-
-	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		await renderTaskListToDOM();
 	}
@@ -976,85 +991,7 @@ async function nowTask(username, userColor, task) {
 	return {
 		status: 200,
 		body: {
-			task: `(${index}) ${task}`,
-		},
-	};
-}
-
-/**
- * This function adds a new task to a user's task list and sets it as the currently focused task.
- *
- * @param {string} username - The name of the user for whom the task is being added.
- * @param {string} userColor - The color associated with the user.
- * @param {string} task - The text description of the task to be added.
- *
- * @returns {Object} - An object containing the status of the operation and a body with either the task added or an error message.
- */
-async function nowTask(username, userColor, task) {
-	const tasks = await DBHandler.get("tasks");
-	if (!tasks[username]) {
-		tasks[username] = {
-			todos: [],
-			done: [],
-			userColor: userColor,
-		};
-	}
-
-	const taskExists = tasks[username].todos.find(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
-	const taskIsInvalid = !task || !task.trim() || task.toLowerCase() === "all";
-	const userHasReachedTaskLimit =
-		(await incompleteTasksCount(username)) >= getSetting("limit") &&
-		getSetting("enableLimit");
-	const taskHasSeparators = taskSeparator.some((char) => task.includes(char));
-
-	if (taskExists) {
-		return createErrorResponse(
-			`@${username} already has this task`,
-			getResponse("duplicateTask")
-		);
-	}
-
-	if (taskIsInvalid) {
-		return createErrorResponse(
-			`@${username} empty task or reserved keyword used`,
-			getResponse("noTaskContent")
-		);
-	}
-
-	if (userHasReachedTaskLimit) {
-		return createErrorResponse(
-			`@${username} has reached the limit of ${getSetting(
-				"limit"
-			)} tasks`,
-			getResponse("noTaskAdded")
-		);
-	}
-
-	if (taskHasSeparators) {
-		return createErrorResponse(
-			`@${username} cannot add multiple tasks with now`,
-			getResponse("noTaskContent")
-		);
-	}
-
-	tasks[username].todos.forEach((task) => {
-		task.focus = false;
-	});
-
-	tasks[username].todos.push({ text: task, done: false, focus: true });
-	taskListMemory.totalTaskCount++;
-
-	await DBHandler.set("tasks", tasks);
-	if (!scrolling) {
-		await renderTaskListToDOM();
-	}
-
-	return {
-		status: 200,
-		body: {
-			task: task,
+			task: `(${addedTaskData.index + 1}) ${addedTaskData.task}`,
 		},
 	};
 }
@@ -2377,7 +2314,7 @@ async function checkTasks(name, completed = false) {
 }
 
 // 0: user has no tasks
-async function listTasks(username) {
+async function listTasks(username, separator = ",") {
 	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username]) {
 		return {
@@ -2388,7 +2325,7 @@ async function listTasks(username) {
 			},
 		};
 	}
-	// filter completed tasks
+	// filter in incomplete tasks
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	if (incompleteTasks.length === 0) {
@@ -2402,23 +2339,28 @@ async function listTasks(username) {
 	}
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
+	let replies = [];
 	let reply = `@${username} `;
-	let taskIndex;
+
 	for (let i = 0; i < incompleteTasks.length; i++) {
-		// get index of task by task name
-		taskIndex =
-			tasks[username].todos.findIndex(
-				(t) =>
-					t.text.toLowerCase() ===
-					incompleteTasks[i].text.toLowerCase()
-			) + 1;
-		reply += `${incompleteTasks[i].text}, `;
+		reply += `${incompleteTasks[i].text}${separator} `;
+
+		// If 10 tasks have been added to the reply, push it to replies and start a new reply
+		if ((i + 1) % 10 === 0) {
+			replies.push(reply.slice(0, -2)); // Remove the trailing separator and space
+			reply = `@${username} `;
+		}
 	}
-	reply = reply.slice(0, -2);
+
+	// Push the remaining tasks if any
+	if (reply !== `@${username} `) {
+		replies.push(reply.slice(0, -2)); // Remove the trailing separator and space
+	}
+
 	return {
 		status: 200,
 		body: {
-			reply: reply,
+			replies: replies,
 		},
 	};
 }
