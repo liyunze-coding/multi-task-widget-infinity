@@ -2698,11 +2698,12 @@ function cancelAnimation() {
 DBHandler.open()
 	.then(async () => {
 		await setupDB();
+		importStyles();
 		if (getSetting("testTasks")) {
 			await resetDB();
 			await tests();
 		}
-		importStyles();
+
 		await renderTaskListToDOM();
 	})
 	.catch((error) => {

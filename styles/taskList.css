@@ -78,7 +78,11 @@
 #main-container .header .task-count {
   margin-right: var(--task-count-margin-right);
 }
+#main-container .task-wrapper, #main-container .task-container {
+  transition: height 0.5s ease-out;
+}
 #main-container .task-wrapper {
+  animation: scrollTasks 20s linear infinite;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -102,6 +106,7 @@
   margin-left: auto;
   margin-right: auto;
   margin-top: var(--body-margin-top);
+  transition: transform 0.4s ease-in-out;
 }
 #main-container .task-wrapper .task-container .task {
   padding: var(--task-vertical-padding) var(--task-horizontal-padding);
@@ -128,6 +133,7 @@
 }
 #main-container .task-wrapper .task-container .task .user-tasks .todo .content {
   display: -webkit-box;
+  line-clamp: var(--number-of-lines);
   -webkit-line-clamp: var(--number-of-lines);
   -webkit-box-orient: vertical;
   overflow: hidden;

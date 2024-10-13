@@ -11,7 +11,7 @@ const configs = (function () {
 		taskSeparator: [";", ","], // array of strings
 		openQuote: '"', // string
 		closeQuote: '"', // string
-		testTasks: false, // true or false
+		testTasks: true, // true or false
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
