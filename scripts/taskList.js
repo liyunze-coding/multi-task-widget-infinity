@@ -282,6 +282,11 @@ function importStyles() {
 		loadGoogleFont(styles.taskFontFamily);
 	}
 
+	document.documentElement.style.setProperty(
+		"--gap-between-scrolls",
+		`${configs.animation.gapBetweenScrolls}px` ?? "0px"
+	);
+
 	const stylesToImport = Object.keys(styles).filter((style) => {
 		return !style.includes("Background");
 	});
@@ -2591,9 +2596,9 @@ async function tests() {
 		`followRythonDev2`,
 		`followRythonDev3`,
 		`followRythonDev4`,
-		`followRythonDev5`,
-		`followRythonDev6`,
-		`followRythonDev7`,
+		// `followRythonDev5`,
+		// `followRythonDev6`,
+		// `followRythonDev7`,
 	];
 
 	for (let i = 0; i < listOfStreamers.length; i++) {
@@ -2617,24 +2622,20 @@ async function checkToAnimate() {
 	let taskWrapper = document.querySelector(".task-wrapper");
 	let taskWrapperHeight = taskWrapper.clientHeight;
 
+	let secondary = document.querySelector(".secondary");
+
 	// scroll task wrapper up and down once
 	if (taskContainerHeight > taskWrapperHeight && !scrolling) {
 		if (!scrolling) {
-			document.querySelector(".secondary").style.display = "flex";
+			secondary.style.display = "flex";
 
 			let finalHeight =
 				taskContainerHeight + configs.animation.gapBetweenScrolls;
 
-			let primaryKeyFrames = [
+			let keyframes = [
 				{ transform: `translateY(0)` },
 				{ transform: `translateY(-${finalHeight}px)` },
 			];
-
-			let secondaryKeyFrames = [
-				{ transform: `translateY(${finalHeight}px)` },
-				{ transform: `translateY(0)` },
-			];
-
 			let scrollingSpeed = (finalHeight / scrollSpeed) * 1000;
 
 			let options = {
@@ -2645,11 +2646,11 @@ async function checkToAnimate() {
 
 			primaryAnimation = document
 				.querySelector(".primary")
-				.animate(primaryKeyFrames, options);
+				.animate(keyframes, options);
 
 			secondaryAnimation = document
 				.querySelector(".secondary")
-				.animate(secondaryKeyFrames, options);
+				.animate(keyframes, options);
 
 			primaryAnimation.play();
 			secondaryAnimation.play();
@@ -2659,7 +2660,7 @@ async function checkToAnimate() {
 			addAnimationListeners();
 		}
 	} else if (!scrolling) {
-		document.querySelector(".secondary").style.display = "none";
+		secondary.style.display = "none";
 
 		// cancel animations
 		if (primaryAnimation) {

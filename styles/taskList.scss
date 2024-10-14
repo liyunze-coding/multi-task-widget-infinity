@@ -55,6 +55,8 @@
 	--task-margin-bottom: 5px;
 	--task-horizontal-padding: 5px;
 	--task-vertical-padding: 5px;
+
+	--gap-between-scrolls: 0;
 }
 
 * {
@@ -114,8 +116,6 @@
 	}
 
 	.task-wrapper {
-		animation: scrollTasks 20s linear infinite;
-
 		width: 100%;
 		height: 100%;
 
@@ -136,8 +136,12 @@
 
 		z-index: 1;
 
+		.task-container.secondary {
+			margin-top: var(--gap-between-scrolls);
+		}
+
 		.task-container {
-			position: absolute;
+			// position: absolute;
 			width: inherit;
 
 			left: 0;
