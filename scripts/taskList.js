@@ -245,7 +245,7 @@ async function getTaskMasterChampion() {
 
 	for (const user in taskmaster.users) {
 		if (
-			user.toLowerCase() === auth.channel &&
+			user.toLowerCase() !== auth.channel.toLowerCase() &&
 			taskmaster.users[user].taskMasterCompleteCount > champion.count
 		) {
 			champion.username = user;
