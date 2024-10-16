@@ -2608,8 +2608,8 @@ async function tests() {
 			`task 1, task 2, task 3, task 4, task 5`
 		);
 		await sleep(1000);
-		markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
-		await sleep(1000);
+		// markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
+		// await sleep(1000);
 	}
 }
 

@@ -367,15 +367,70 @@ async function processCommand(user, command, message, flags, extra) {
 		await clearAllTasks();
 		respond(getResponse("clearedTasks"), params);
 	} else if (getCommand("listCommands").includes(command)) {
-		let listTaskResponse = await listTasks(user);
+		const interval = 100;
+		if (message === "") {
+			let listTaskResponse = await listTasks(user);
 
-		if (listTaskResponse.status !== 200) {
-			// no tasks
-			respond(listTaskResponse.body.error, params);
-			return;
+			if (listTaskResponse.status !== 200) {
+				// no tasks
+				respond(listTaskResponse.body.error, params);
+				return;
+			}
+
+			for (reply of listTaskResponse.body.replies) {
+				params.tasks = reply;
+				await respond("{tasks}", params);
+				await sleep(interval);
+			}
+		} else {
+			let separator = ",";
+			let args = message.split(" ");
+			let anotherUser = true;
+
+			// separate separator from mentioned user
+			if (args[0].length === 1) {
+				// args[0] is separator
+				separator = args[0];
+				args.shift();
+			} else if (args[1] && args[1].length === 1) {
+				// args[1] is separator
+				separator = args[1];
+				args.splice(1, 1);
+			} else {
+				// default, no separator specified
+			}
+
+			let mentioned = args.join(" ").replace("@", "");
+
+			if (args.length === 0) {
+				// no user specified
+				mentioned = user;
+				anotherUser = false;
+				// noTaskA
+			}
+
+			if (mentioned.toLowerCase() === "id") {
+				await respond(getResponse("noTaskA"), params);
+				return;
+			}
+
+			let listTaskResponse = await listTasks(mentioned, separator);
+
+			if (listTaskResponse.status !== 200 && anotherUser) {
+				// no tasks
+				respond(getResponse("noTaskA"), params);
+				return;
+			} else if (listTaskResponse.status !== 200 && !anotherUser) {
+				respond(getResponse("noTask"), params);
+				return;
+			}
+
+			for (reply of listTaskResponse.body.replies) {
+				params.tasks = reply;
+				await respond("{tasks}", params);
+				await sleep(interval);
+			}
 		}
-
-		respond(listTaskResponse.body.reply, params);
 	} else if (getCommand("checkCountCommands").includes(command)) {
 		if (message === "") {
 			let count = await completedTasksCount(user);
