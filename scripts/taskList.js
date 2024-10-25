@@ -1741,7 +1741,7 @@ async function markTaskDone(username, task) {
 		// if there's no comma in the task (single task)
 
 		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase() && !task.done
+			(t) => t.text.toLowerCase() === task.toLowerCase() && !t.done
 		);
 
 		// is there a task with focus on?
