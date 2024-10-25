@@ -851,13 +851,16 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 			.split(taskSeparator.find((char) => task.includes(char)))
 			.map((t) => t.trim());
 
-		tasksToAdd.forEach((t) => {
+		for (const t of tasksToAdd) {
 			if (
-				(t &&
-					!tasks[username].todos.find((task) => task.text === t) &&
-					!isInt(t) &&
-					!getSetting("taskCharacterLimitEnabled")) ||
-				t.length <= getSetting("taskCharacterLimit")
+				t &&
+				!tasks[username].todos.find(
+					(task) => task.text === t && !task.completed
+				) &&
+				!isInt(t) &&
+				t.trim() !== "" &&
+				(!getSetting("taskCharacterLimitEnabled") ||
+					t.length <= getSetting("taskCharacterLimit"))
 			) {
 				tasks[username].todos.push({
 					text: t,
@@ -869,21 +872,16 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 				addedTaskIndices.push({ index: index, task: t }); // store index of added task
 				taskListMemory.totalTaskCount++;
 			} else {
-				console.log(
-					!tasks[username].todos.find((task) => task.text === t)
-				);
-				console.log(!isInt(t));
-				console.log(!getSetting("taskCharacterLimitEnabled"));
-				console.log(task.length <= getSetting("taskCharacterLimit"));
 				tasksFailedToAdd.push(t);
 			}
-		});
+		}
 
 		await DBHandler.set("tasks", tasks);
 	} else {
-		const taskExists = tasks[username].todos.find(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
+		const taskExistsAndIncomplete = tasks[username].todos.find(
+			(t) => t.text.toLowerCase() === task.toLowerCase() && !t.done
 		);
+
 		const taskIsInvalid =
 			!task ||
 			!task.trim() ||
@@ -898,7 +896,7 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 			(await incompleteTasksCount(username)) >= getSetting("limit") &&
 			getSetting("enableLimit");
 
-		if (taskExists) {
+		if (taskExistsAndIncomplete) {
 			return createErrorResponse(
 				`@${username} already has this task`,
 				getResponse("duplicateTask")
@@ -1676,14 +1674,9 @@ async function markTaskDone(username, task) {
 
 		for (const t of tasksToMarkDone) {
 			let index = tasks[username].todos.findIndex(
-				(task) => task.text.toLowerCase() === t.toLowerCase()
+				(task) =>
+					task.text.toLowerCase() === t.toLowerCase() && !task.done
 			);
-
-			// check if task is already marked done
-			if (index !== -1 && tasks[username].todos[index].done) {
-				tasksFailedToComplete.push(t);
-				continue;
-			}
 
 			if (index === -1) {
 				if (isInt(t)) {
@@ -1748,7 +1741,7 @@ async function markTaskDone(username, task) {
 		// if there's no comma in the task (single task)
 
 		let index = tasks[username].todos.findIndex(
-			(t) => t.text.toLowerCase() === task.toLowerCase()
+			(t) => t.text.toLowerCase() === task.toLowerCase() && !task.done
 		);
 
 		// is there a task with focus on?
@@ -1777,6 +1770,7 @@ async function markTaskDone(username, task) {
 				};
 			}
 
+			// index out of range
 			if (index < 0 || index > tasks[username].todos.length - 1) {
 				return {
 					status: 1,
@@ -2175,16 +2169,27 @@ async function logTask(username, userColor, task) {
 		};
 	}
 
-	const taskExists = tasks[username].todos.find(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
+	const taskExistsAndIncomplete = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase() && !t.done
+	);
+
+	const taskExistsAndCompleted = tasks[username].todos.find(
+		(t) => t.text.toLowerCase() === task.toLowerCase() && t.done
 	);
 	const taskIsInvalid =
 		!task || !task.trim() || task.toLowerCase() === "all" || isInt(task);
 
-	if (taskExists) {
+	if (taskExistsAndIncomplete) {
 		return createErrorResponse(
 			`@${username} already has this task`,
 			getResponse("duplicateTask")
+		);
+	}
+
+	if (taskExistsAndCompleted) {
+		return createErrorResponse(
+			`@${username} already has this task completed`,
+			getResponse("taskAlreadyCompleted")
 		);
 	}
 
@@ -2195,45 +2200,55 @@ async function logTask(username, userColor, task) {
 		);
 	}
 
-	const tasksToAdd = taskSeparator.some((char) => task.includes(char))
+	const tasksToLog = taskSeparator.some((char) => task.includes(char))
 		? task
 				.split(taskSeparator.find((char) => task.includes(char)))
 				.map((t) => t.trim())
 		: [task];
-	let tasksFailedToAdd = [];
-	let addedTaskIndices = []; // new array to store indices of added tasks
 
-	tasksToAdd.forEach((t) => {
+	let tasksFailedToLog = [];
+	let loggedTaskIndices = []; // new array to store indices of added tasks
+
+	for (const t of tasksToLog) {
 		if (
 			t &&
 			!tasks[username].todos.find((task) => task.text === t) &&
-			!isInt(t)
+			!isInt(t) &&
+			t.trim() !== "" &&
+			(!getSetting("taskCharacterLimitEnabled") ||
+				t.length <= getSetting("taskCharacterLimit"))
 		) {
 			tasks[username].todos.push({ text: t, done: true, focus: false });
 
+			// increment count
+			await addDoneCount(username, 1);
+
 			let index = tasks[username].todos.length - 1;
-			addedTaskIndices.push({ index: index, task: t }); // store index of added task
+			console.log({ index: index, task: t });
+			loggedTaskIndices.push({ index: index, task: t }); // store index of added task
+			console.log(loggedTaskIndices);
+
 			taskListMemory.totalTaskCount++;
 		} else {
-			tasksFailedToAdd.push(t);
+			tasksFailedToLog.push(t);
 		}
-	});
+	}
 
 	await DBHandler.set("tasks", tasks);
 	if (!scrolling) {
 		await renderTaskListToDOM();
 	}
 
-	let displayedTasksAdded = addedTaskIndices.map((t) => {
+	let displayedTasksLogged = loggedTaskIndices.map((t) => {
 		return `(${t.index + 1}) ${t.task}`;
 	});
 
 	return {
 		status: 200,
 		body: {
-			task: displayedTasksAdded.join(`${closeQuote}, ${openQuote}`),
+			task: displayedTasksLogged.join(`${closeQuote}, ${openQuote}`),
 			tasksFailedToLog:
-				tasksFailedToAdd.join(`${closeQuote}, ${openQuote}`) || "",
+				tasksFailedToLog.join(`${closeQuote}, ${openQuote}`) || "",
 		},
 	};
 }

@@ -129,7 +129,6 @@ const defaultConfigs = (function () {
 			"!task",
 			"!add",
 			"!todo",
-			"!tasks",
 			"!a",
 		],
 
@@ -197,7 +196,6 @@ const defaultConfigs = (function () {
 			"!next",
 			"!n",
 		],
-
 		logTaskCommands: ["!log", "!tasklog", "!logtask", "!logtasks"],
 
 		// focus task commands - please add commands in the exact format
@@ -279,7 +277,14 @@ const defaultConfigs = (function () {
 		resetTaskMasterCommands: ["!resettaskmaster"],
 
 		// Help commands - please add commands in the exact format
-		helpCommands: ["!taskh", "!taskhelp", "!htask", "!helptask", "!help"],
+		helpCommands: [
+			"!taskh",
+			"!taskhelp",
+			"!htask",
+			"!helptask",
+			"!tasks",
+			"!help",
+		],
 
 		// Admin clear all except streamer - please add commands following the exact format
 		adminClearNotStreamerCommands: [
@@ -329,6 +334,8 @@ const defaultConfigs = (function () {
 		nowTask:
 			"{taskName} {task} is now the task you are working on, {user}!",
 		taskLogged: "Task(s) {task} has been logged, {user}!",
+		taskAlreadyCompleted:
+			"Looks like you already completed that {taskName} {task} up there {user}!",
 
 		// Grouped by task progression responses
 		taskNext:

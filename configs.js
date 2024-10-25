@@ -11,7 +11,7 @@ const configs = (function () {
 		taskSeparator: [";", ","], // array of strings
 		openQuote: '"', // string
 		closeQuote: '"', // string
-		testTasks: true, // true or false
+		testTasks: false, // true or false
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
@@ -334,6 +334,8 @@ const configs = (function () {
 		nowTask:
 			"{taskName} {task} is now the task you are working on, {user}!",
 		taskLogged: "Task(s) {task} has been logged, {user}!",
+		taskAlreadyCompleted:
+			"Looks like you already completed that {taskName} {task} up there {user}!",
 
 		// Grouped by task progression responses
 		taskNext:

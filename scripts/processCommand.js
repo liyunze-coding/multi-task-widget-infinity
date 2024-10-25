@@ -170,7 +170,7 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		// task logged
-		let loggedResponse = getResponse("taskLogged");
+		let loggedResponse = await getResponse("taskLogged");
 
 		params.task = `${openQuote}${logRequest.body.task}${closeQuote}`;
 
@@ -179,18 +179,6 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		await respond(loggedResponse, params);
-
-		// let addRequest = await addTask(user, extra.userColor, message);
-
-		// if (addRequest.status !== 200) {
-		// 	respond(addRequest.body.error, params);
-		// 	return;
-		// }
-
-		// let addedResponse = getResponse("taskAdded");
-		// params.task = `${openQuote}${addRequest.body.task}${closeQuote}`;
-
-		// respond(addedResponse, params);
 	} else if (getCommand("focusTaskCommands").includes(command)) {
 		let focusRequest = await focusTask(user, message);
 
