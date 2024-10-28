@@ -970,33 +970,8 @@ function createErrorResponse(errorMessage, errorType) {
  * @returns {Object} An object with a status and body. The status is 200 if successful, otherwise it indicates the error. The body contains the task text or an error message.
  */
 async function nowTask(username, userColor, task) {
-	// if task is integer, return error
-	let addTaskFunction = await _addTask(username, userColor, task, true);
-
-	let addedTaskIndices = addTaskFunction.body.addedTaskIndices;
-	let addedTaskData = addedTaskIndices[0];
-
-	if (addTaskFunction.status !== 200) {
-		return addTaskFunction;
-	}
-
-	// focus on it
-	let focusTaskFunction = await focusTask(username, addedTaskData.task);
-
-	if (focusTaskFunction.status !== 200) {
-		return focusTaskFunction;
-	}
-
-	if (!scrolling) {
-		await renderTaskListToDOM();
-	}
-
-	return {
-		status: 200,
-		body: {
-			task: `(${addedTaskData.index + 1}) ${addedTaskData.task}`,
-		},
-	};
+	// nowtask is now the same as focus task
+	return focusTask(username, userColor, task);
 }
 
 /**
@@ -1006,23 +981,18 @@ async function nowTask(username, userColor, task) {
  * @param {string} task - The task to be focused.
  * @returns {Object} An object with a status and body. The status is 200 if the task is successfully focused, and the body contains the focused task. If the task is not focused, the status indicates the error and the body contains an error message.
  */
-async function focusTask(username, task) {
-	const tasks = await DBHandler.get("tasks");
+async function focusTask(username, userColor, task) {
+	let tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return createErrorResponse(
-			`@${username} has no tasks`,
-			getResponse("noTask")
-		);
+		tasks[username] = {
+			todos: [],
+			done: [],
+			userColor: userColor,
+		};
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
-	if (incompleteTasks.length === 0) {
-		return createErrorResponse(
-			`@${username} has no incomplete tasks`,
-			getResponse("noTask")
-		);
-	}
 
 	if (taskSeparator.some((separator) => task.includes(separator))) {
 		return createErrorResponse(
@@ -1038,13 +1008,18 @@ async function focusTask(username, task) {
 	if (index === -1) {
 		if (isInt(task)) {
 			index = parseInt(task) - 1; // ACTUAL INDEX
+		} else if (task !== "") {
+			// add it as a focused task
+			let addTaskFunction = await _addTask(username, userColor, task);
+
+			if (addTaskFunction.status !== 200) {
+				return addTaskFunction;
+			}
+
+			index = addTaskFunction.body.addedTaskIndices[0].index;
+			tasks = await DBHandler.get("tasks");
 		} else if (incompleteTasks.length === 1) {
 			index = tasks[username].todos.findIndex((t) => !t.done);
-		} else {
-			return createErrorResponse(
-				`@${username} invalid input`,
-				getResponse("specifyFocusTask")
-			);
 		}
 
 		if (index < 0 || index > tasks[username].todos.length - 1) {
@@ -1097,7 +1072,7 @@ async function focusTask(username, task) {
 	return {
 		status: 200,
 		body: {
-			focusedTask: focusedTask,
+			focusedTask: `(${index + 1}) ${focusedTask}`,
 		},
 	};
 }

@@ -147,20 +147,6 @@ async function processCommand(user, command, message, flags, extra) {
 		params.newTask = `${openQuote}${nextRequest.body.newTask}${closeQuote}`;
 
 		respond(nextResponse, params);
-	} else if (getCommand("nowTaskCommands").includes(command)) {
-		let nowRequest = await nowTask(user, extra.userColor, message);
-
-		if (nowRequest.status !== 200) {
-			respond(nowRequest.body.error, params);
-			return;
-		}
-
-		// task now
-		let nowResponse = getResponse("nowTask");
-
-		params.task = `${openQuote}${nowRequest.body.task}${closeQuote}`;
-
-		await respond(nowResponse, params);
 	} else if (getCommand("logTaskCommands").includes(command)) {
 		let logRequest = await logTask(user, extra.userColor, message);
 
@@ -179,8 +165,11 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		await respond(loggedResponse, params);
-	} else if (getCommand("focusTaskCommands").includes(command)) {
-		let focusRequest = await focusTask(user, message);
+	} else if (
+		getCommand("focusTaskCommands").includes(command) ||
+		getCommand("nowTaskCommands").includes(command)
+	) {
+		let focusRequest = await focusTask(user, extra.userColor, message);
 
 		if (focusRequest.status !== 200) {
 			respond(focusRequest.body.error, params);
@@ -188,11 +177,11 @@ async function processCommand(user, command, message, flags, extra) {
 		}
 
 		// task focused
-		let focusedResponse = getResponse("taskFocused");
+		let focusedResponse = getResponse("nowTask");
 
 		params.task = `${openQuote}${focusRequest.body.focusedTask}${closeQuote}`;
 
-		await respond(focusedResponse, params);
+		respond(focusedResponse, params);
 	} else if (getCommand("focusedTaskCommands").includes(command)) {
 		let focusedRequest = await focusedTask(user);
 
