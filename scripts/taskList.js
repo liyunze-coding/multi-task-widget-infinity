@@ -2234,6 +2234,12 @@ async function logTask(username, userColor, task) {
  * @param {string} name - The name of the user whose tasks are to be checked.
  * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
  */
+/**
+ * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
+ *
+ * @param {string} name - The name of the user whose tasks are to be checked.
+ * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
+ */
 async function checkTasks(name, completed = false) {
 	const tasks = await DBHandler.get("tasks");
 
@@ -2271,34 +2277,29 @@ async function checkTasks(name, completed = false) {
 
 	// format incomplete tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
 	let reply = `${name}'s ${label} {taskName}s (${filteredTasks.length}) : `;
-	let taskIndex;
-	for (let i = 0; i < filteredTasks.length; i++) {
+	for (
+		let taskIndex = 0;
+		taskIndex < tasks[username].todos.length;
+		taskIndex++
+	) {
 		// get index of task by task name
-		taskIndex =
-			tasks[username].todos.findIndex(
-				(t) =>
-					t.text.toLowerCase() === filteredTasks[i].text.toLowerCase()
-			) + 1;
+		let currentTask = tasks[username].todos[taskIndex];
+		if (!completed) {
+			if (currentTask.done) {
+				continue;
+			}
 
-		reply += `${taskIndex}. ${filteredTasks[i].focus ? "(ongoing)" : ""} ${
-			filteredTasks[i].text
-		} | `;
+			reply += `${taskIndex + 1}. ${
+				currentTask.focus ? "(ongoing)" : ""
+			} ${currentTask.text} | `;
+		} else {
+			if (!currentTask.done) {
+				continue;
+			}
+			reply += `${taskIndex + 1}. ${currentTask.text} | `;
+		}
 	}
 	reply = reply.slice(0, -3);
-
-	// format completed tasks into string: 1. task 1 | 2. task 2 | 3. task 3...
-	// reply += `\n|| completed tasks (${completedTasks.length}) : `;
-
-	// for (let j = 0; j < completedTasks.length; j++) {
-	// 	taskIndex =
-	// 		tasks[username].todos.findIndex(
-	// 			(t) =>
-	// 				t.text.toLowerCase() ===
-	// 				completedTasks[j].text.toLowerCase()
-	// 		) + 1;
-	// 	reply += `${taskIndex}. ${completedTasks[j].text} | `;
-	// }
-	// reply = reply.slice(0, -3);
 
 	return {
 		status: 200,
