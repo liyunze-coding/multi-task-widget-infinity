@@ -810,9 +810,9 @@ async function addTask(username, userColor, task) {
 	let addedTaskIndices = addTaskFunction.body.addedTaskIndices;
 	let tasksFailedToAdd = addTaskFunction.body.tasksFailedToAdd;
 
-	if (!scrolling) {
-		await renderTaskListToDOM();
-	}
+	// if (!scrolling) {
+	await renderTaskListToDOM();
+	// }
 
 	let displayedTasksAdded = addedTaskIndices.map((t) => {
 		return `(${t.index + 1}) ${t.task}`;

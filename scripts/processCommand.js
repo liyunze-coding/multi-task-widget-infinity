@@ -14,6 +14,7 @@ async function processCommand(user, command, message, flags, extra) {
 		let addRequest = await addTask(user, extra.userColor, message);
 
 		if (addRequest.status !== 200) {
+			params.task = `${openQuote}${message}${closeQuote}`;
 			respond(addRequest.body.error, params);
 			return;
 		}
@@ -25,7 +26,7 @@ async function processCommand(user, command, message, flags, extra) {
 			addedResponse += ` | Failed to add task(s): "${addRequest.body.tasksFailedToAdd}"`;
 		}
 
-		respond(addedResponse, params);
+		await respond(addedResponse, params);
 	} else if (getCommand("editTaskCommands").includes(command)) {
 		let editRequest = await editTask(user, message);
 

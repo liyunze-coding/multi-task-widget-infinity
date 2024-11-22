@@ -2,8 +2,11 @@ let params = {};
 
 function respond(template, params) {
 	Object.keys(params).forEach((key) => {
-		template = template.replace(`{${key}}`, params[key]);
+		console.log(`{${key}}: ${params[key]}`);
+		template = template.replaceAll(`{${key}}`, params[key]);
 	});
+
+	console.log(template);
 
 	ComfyJS.Say(template);
 }

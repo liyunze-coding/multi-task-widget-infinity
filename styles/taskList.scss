@@ -65,6 +65,19 @@
 	box-sizing: border-box;
 }
 
+@keyframes scroll {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-100%);
+    }
+}
+
+.primary, .secondary {
+    animation: scroll linear infinite;
+}
+
 
 #main-container {
 	width: 100%;
