@@ -810,9 +810,9 @@ async function addTask(username, userColor, task) {
 	let addedTaskIndices = addTaskFunction.body.addedTaskIndices;
 	let tasksFailedToAdd = addTaskFunction.body.tasksFailedToAdd;
 
-	// if (!scrolling) {
-	await renderTaskListToDOM();
-	// }
+	if (!scrolling) {
+		await renderTaskListToDOM();
+	}
 
 	let displayedTasksAdded = addedTaskIndices.map((t) => {
 		return `(${t.index + 1}) ${t.task}`;
@@ -2580,6 +2580,15 @@ function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function randomTasks(num) {
+	let tasks = [];
+	for (let i = 0; i < num; i++) {
+		tasks.push(`task ${i + 1}`);
+	}
+
+	return tasks.join(", ");
+}
+
 // unit tests
 async function tests() {
 	let listOfStreamers = [
@@ -2587,20 +2596,16 @@ async function tests() {
 		`followRythonDev2`,
 		`followRythonDev3`,
 		`followRythonDev4`,
-		// `followRythonDev5`,
-		// `followRythonDev6`,
-		// `followRythonDev7`,
+		`followRythonDev5`,
+		`followRythonDev6`,
+		`followRythonDev7`,
 	];
 
 	for (let i = 0; i < listOfStreamers.length; i++) {
-		addTask(
-			listOfStreamers[i],
-			"#ffc0cb",
-			`task 1, task 2, task 3, task 4, task 5`
-		);
+		let randomNum = Math.floor(Math.random() * 10) + 1;
+
+		addTask(listOfStreamers[i], "#ffc0cb", randomTasks(randomNum));
 		await sleep(1000);
-		// markTaskDone(listOfStreamers[i], `1, 2, 3, 4, 5`);
-		// await sleep(1000);
 	}
 }
 
