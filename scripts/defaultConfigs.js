@@ -2,6 +2,7 @@ const defaultConfigs = (function () {
 	"use strict";
 
 	const settings = {
+		replyInChat: true, // true or false
 		enableLimit: false, // true or false
 		limit: 10, // integer
 		automaticDoneIndex: false, // true or false - Automatically assume first unfinished task is complete
@@ -16,7 +17,7 @@ const defaultConfigs = (function () {
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
 		enableTaskMaster: true, // true or false
-		hideWhenNoTasks: true, // true or false
+		hideWhenNoTasks: false, // true or false
 		taskCharacterLimit: 15, // integer
 		taskCharacterLimitEnabled: false, // true or false
 	};

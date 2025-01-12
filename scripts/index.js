@@ -1,14 +1,17 @@
 let params = {};
 
-function respond(template, params) {
-	Object.keys(params).forEach((key) => {
-		console.log(`{${key}}: ${params[key]}`);
-		template = template.replaceAll(`{${key}}`, params[key]);
-	});
-
-	console.log(template);
-
-	ComfyJS.Say(template);
+function respond(template, params, parentId = null) {
+	if (getSetting("replyInChat")) {
+		Object.keys(params).forEach((key) => {
+			console.log(`{${key}}: ${params[key]}`);
+			template = template.replaceAll(`{${key}}`, params[key]);
+		});
+		if (!parentId) {
+			ComfyJS.Say(template);
+		} else {
+			ComfyJS.Reply(parentId, template);
+		}
+	}
 }
 
 function isMod(flags) {
