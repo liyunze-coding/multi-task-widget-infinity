@@ -10,6 +10,8 @@ async function processCommand(user, command, message, flags, extra) {
 		taskName: getSetting("taskName"),
 	};
 
+	command = command.toLowerCase();
+
 	if (getCommand("addTaskCommands").includes(command)) {
 		let addRequest = await addTask(user, extra.userColor, message);
 
@@ -461,8 +463,6 @@ async function processCommand(user, command, message, flags, extra) {
 		await syncPointsToCount();
 		respond(getResponse("syncCountPoints"), params, extra.id);
 	} else if (getCommand("addPointsCommands").includes(command)) {
-		// !addpoints @user 100
-
 		if (!isMod(flags)) {
 			respond(getResponse("notMod"), params, extra.id);
 			return;
