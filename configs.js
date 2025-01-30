@@ -360,7 +360,7 @@ const configs = (function () {
 
 		// Grouped by task completion responses
 		taskFinished:
-			"Good job on finishing the {taskName}(s) {task}, {user}! You have earned {pointCount} {pointName} and completed {doneCount} {taskName}(s) so far!",
+			"Good job on finishing the {taskName}(s) {task}, {user}! You have completed {doneCount} {taskName}(s) so far!", // {pointCount} {pointName} vars available
 		allTasksFinished:
 			"Good job on finishing all your {taskName}s, {user}! You have completed {doneCount} {taskName}(s) so far!",
 		taskUnfinished:
