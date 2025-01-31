@@ -356,6 +356,7 @@ const defaultConfigs = (function () {
 			"All {taskName}s have been cleared except for the streamer's, {user}!",
 		clearedTasks: "All {taskName}s have been cleared, {user}!",
 		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
+		clearedDone: "All completed {taskName}s have been cleared, {user}!",
 		clearedAll: "All {taskName}s and points have been cleared, {user}!",
 
 		// Grouped by task completion responses
