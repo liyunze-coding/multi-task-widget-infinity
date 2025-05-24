@@ -6,6 +6,9 @@ function respond(template, params, parentId = null) {
 			console.log(`{${key}}: ${params[key]}`);
 			template = template.replaceAll(`{${key}}`, params[key]);
 		});
+
+		template = template.charAt(0).toUpperCase() + template.slice(1);
+
 		if (!parentId) {
 			ComfyJS.Say(template);
 		} else {
