@@ -34,7 +34,6 @@ const configs = (function () {
 			"!undone",
 			"!botcred",
 			"!count",
-			"!points",
 			"!boardcount",
 		],
 	};
@@ -244,24 +243,16 @@ const configs = (function () {
 		],
 
 		checkMyPointsCommands: [
-			"!taskpoints",
-			"!points",
-			"!mypoints",
-			"!checkpoints",
 		],
 
 		// sync points with count commands - please add commands in the exact format
-		syncCountPointsCommands: ["!syncpoints", "!synccount"],
+		syncCountPointsCommands: [],
 
-		addPointsCommands: ["!addpoints", "!givepoints", "!adduserpoints"],
+		addPointsCommands: [],
 
-		reducePointsCommands: ["!reducepoints", "!takepoints"],
+		reducePointsCommands: [],
 
 		setUserPointsCommands: [
-			"!setuserpoints",
-			"!setpoints",
-			"!setpointsuser",
-			"!setuserpoint",
 		],
 
 		setUserTaskCountCommands: [
@@ -271,7 +262,7 @@ const configs = (function () {
 			"!setusertask",
 		],
 
-		leaderboardCommands: ["!leaderboard", "!lb", "!top", "!toppoints"],
+		leaderboardCommands: ["!leaderboard", "!lb", "!top"],
 
 		taskMasterCommands: ["!taskmaster", "!taskchampion"],
 
