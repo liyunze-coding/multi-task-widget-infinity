@@ -46,35 +46,9 @@ I'll just update you guys on the Discord
 
 ## Installation
 
-### Method 1 (fastest, easiest way)
+Check Discord `#instructions` channel
 
-1. Install the zip or clone the repository
-
-2. Go to https://twitchapps.com/tmi/ to create an oauth token (it acts as a password)
-
-3. Setup authentication in `auth.js`
-
-4. Setup `Browser Source` in OBS studio or other streaming software with the following settings:
-
--   Local File: `checked`
--   Local File: `index.html`
-
-### Method 2 (better if you're using an alt account as a bot)
-
-1. Install the zip or clone the repository
-
-2. Create a Twitch application [here](https://dev.twitch.tv/console/apps) \(Log in with your alternate Twitch account if you wish to use a different account as a bot account\)
-
-3. Copy the `Client ID` from the application
-
-4. Create token using `get_token.txt`. Replace `CLIENT_ID` with the `Client ID` from the application
-
-5. Setup authentication in `auth.js`
-
-6. Setup `Browser Source` in OBS studio or other streaming software with the following settings:
-
--   Local File: `checked`
--   Local File: `index.html`
+https://discord.com/channels/1136682645728809171/1192428617632841740/1192430039543853086
 
 ---
 
