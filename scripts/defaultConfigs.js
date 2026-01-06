@@ -2,6 +2,7 @@ const defaultConfigs = (function () {
 	"use strict";
 
 	const settings = {
+		listenAcrossSharedChat: false,
 		replyInChat: true, // true or false
 		enableLimit: false, // true or false
 		limit: 10, // integer

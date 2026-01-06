@@ -26,6 +26,14 @@ function isStreamer(flags) {
 }
 
 ComfyJS.onCommand = (user, command, message, flags, extra) => {
+	if (!getSetting("listenAcrossSharedChat")) {
+		// Reject messages from another chat during shared chat if room information
+		// is present and doesn't match the current chat.
+		const { roomId, userState } = extra;
+		const sourceRoomId = userState["source-room-id"];
+		if (roomId && sourceRoomId && roomId !== sourceRoomId) return;
+	}
+
 	command = `!${command.toLowerCase()}`;
 
 	processCommand(user, command, message, flags, extra);
