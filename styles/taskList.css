@@ -168,3 +168,58 @@
   width: fit-content;
   margin-left: calc(var(--focus-task-horizontal-padding) * -1);
 }/*# sourceMappingURL=taskList.css.map */
+.oauth-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.5rem;
+	background: rgba(0, 0, 0, 0.75);
+}
+
+.oauth-modal.hidden {
+	display: none;
+}
+
+.oauth-modal__content {
+	max-width: 28rem;
+	padding: 1.5rem 1.75rem;
+	border-radius: 0.5rem;
+	background: #18181b;
+	color: #efeff1;
+	font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+	font-size: 0.95rem;
+	line-height: 1.5;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.oauth-modal__content h2 {
+	margin-bottom: 0.75rem;
+	font-size: 1.15rem;
+	font-weight: 600;
+}
+
+.oauth-modal__content p {
+	margin-bottom: 0.75rem;
+}
+
+.oauth-modal__content ol {
+	margin-left: 1.25rem;
+}
+
+.oauth-modal__content li + li {
+	margin-top: 0.35rem;
+}
+
+.oauth-modal__content a {
+	color: #9147ff;
+}
+
+.oauth-modal__content code {
+	padding: 0.1em 0.35em;
+	border-radius: 0.2rem;
+	background: rgba(255, 255, 255, 0.1);
+	font-size: 0.9em;
+}

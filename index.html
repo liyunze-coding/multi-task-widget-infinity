@@ -47,5 +47,38 @@
 				<div class="task-container secondary"></div>
 			</div>
 		</div>
+
+		<div
+			id="oauth-expired-modal"
+			class="oauth-modal hidden"
+			role="alertdialog"
+			aria-labelledby="oauth-modal-title"
+			aria-modal="true"
+		>
+			<div class="oauth-modal__content">
+				<h2 id="oauth-modal-title">Twitch OAuth token expired</h2>
+				<p>
+					The token in <code>auth.js</code> is no longer valid. Chat
+					commands will not work until you replace it.
+				</p>
+				<ol>
+					<li>
+						Open
+						<a
+							href="https://sarayalth.github.io/TwitchOAuthGenerator/"
+							target="_blank"
+							rel="noopener noreferrer"
+							>Twitch OAuth Generator</a
+						>
+					</li>
+					<li>Click <strong>Set Default Scopes</strong></li>
+					<li>
+						Click <strong>Get OAuth Token</strong>, then paste the
+						token into <code>auth.js</code>
+					</li>
+					<li>Reload this browser source</li>
+				</ol>
+			</div>
+		</div>
 	</body>
 </html>
