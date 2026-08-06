@@ -1,6 +1,6 @@
-var commands = configs.commands;
-var openQuote = getSetting("openQuote");
-var closeQuote = getSetting("closeQuote");
+const commands = configs.commands;
+const openQuote = getSetting("openQuote");
+const closeQuote = getSetting("closeQuote");
 
 async function processCommand(user, command, message, flags, extra) {
 	params = {
@@ -235,7 +235,7 @@ async function processCommand(user, command, message, flags, extra) {
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
 
-				var checkingUser = user;
+				const checkingUser = user;
 				params.checkingUser = checkingUser;
 
 				await respond(`{tasks}`, params, extra.id);
@@ -268,7 +268,7 @@ async function processCommand(user, command, message, flags, extra) {
 					.join(" | ")
 					.replaceAll("{taskName}", getSetting("taskName"));
 
-				var checkingUser = user;
+				const checkingUser = user;
 
 				params.checkingUser = checkingUser;
 

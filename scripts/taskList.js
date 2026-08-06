@@ -22,14 +22,14 @@ DB structure:
 
 const styles = configs.styles;
 const scrollSpeed = configs.animation.scrollSpeed;
-var openQuote = getSetting("openQuote");
-var closeQuote = getSetting("closeQuote");
+let openQuote = getSetting("openQuote");
+let closeQuote = getSetting("closeQuote");
 let visible = false;
 let scrolling = false;
 let primaryAnimation, secondaryAnimation;
 const taskSeparator = getSetting("taskSeparator");
 
-var taskListMemory = {
+let taskListMemory = {
 	doneTaskCount: 0,
 	totalTaskCount: 0,
 };
@@ -855,7 +855,7 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 			if (
 				t &&
 				!tasks[username].todos.find(
-					(task) => task.text === t && !task.completed
+					(task) => task.text === t && !task.done
 				) &&
 				!isInt(t) &&
 				t.trim() !== "" &&
@@ -951,9 +951,9 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 	};
 }
 
-function createErrorResponse(errorMessage, errorType) {
+function createErrorResponse(errorMessage, errorType, status = 0) {
 	return {
-		status: 0,
+		status: status,
 		body: {
 			"error message": errorMessage,
 			error: errorType,
@@ -1127,13 +1127,10 @@ async function unfocusTask(username) {
 async function removeTask(username, task) {
 	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
@@ -1188,13 +1185,11 @@ async function removeTask(username, task) {
 		}
 
 		if (tasksRemoved.length === 0) {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} invalid input`,
-					error: getResponse("specifyTaskIndex"),
-				},
-			};
+			return createErrorResponse(
+				`@${username} invalid input`,
+				getResponse("specifyTaskIndex"),
+				1
+			);
 		}
 
 		// sort removedTaskIndex in descending order
@@ -1235,29 +1230,25 @@ async function removeTask(username, task) {
 				index = parseInt(task) - 1; // ACTUAL INDEX
 			} else if (incompleteTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => !t.done);
-			} else if (focusedTask) {
+				} else if (focusedTask) {
 				index = tasks[username].todos.findIndex(
 					(t) =>
 						t.text.toLowerCase() === focusedTask.text.toLowerCase()
 				);
 			} else {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 		}
 
@@ -1277,50 +1268,14 @@ async function removeTask(username, task) {
 	}
 }
 
-async function getFocusedTask(username) {
-	const tasks = await DBHandler.get("tasks");
-
-	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
-	}
-
-	let focusedTask = tasks[username].todos.find((t) => t.focus);
-
-	if (!focusedTask) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no focused task`,
-				error: getResponse("noFocusedTask"),
-			},
-		};
-	}
-
-	return {
-		status: 200,
-		body: {
-			focusedTask: focusedTask.text,
-		},
-	};
-}
-
 async function checkIfTaskExists(username, task) {
 	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	let taskExistsBasedOnText = tasks[username].todos.find(
@@ -1353,34 +1308,21 @@ async function checkIfTaskExists(username, task) {
  *
  * @returns {Object} - An object containing the status of the operation and a body with either the old and new task or an error message.
  */
-/**
- * This function marks the current task of a user as complete and adds a new task to the user's task list.
- *
- * @param {string} username - The name of the user who is completing the current task and adding a new one.
- * @param {string} task - The text description of the new task to be added.
- *
- * @returns {Object} - An object containing the status of the operation and a body with either the old and new task or an error message.
- */
 async function nextTask(username, task) {
 	const tasks = await DBHandler.get("tasks");
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	if (task === "") {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} empty task`,
-				error: getResponse("nextNoContent"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} empty task`,
+			getResponse("nextNoContent"),
+			1
+		);
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
@@ -1392,13 +1334,10 @@ async function nextTask(username, task) {
 
 	// check if there's a focused task
 	if (!focusedTaskExists && incompleteTasks.length > 1) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} does not have a focused task`,
-				error: getResponse("noFocusedTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} does not have a focused task`,
+			getResponse("noFocusedTask")
+		);
 	} else if (textTaskExists || indexTaskExists) {
 		let index = tasks[username].todos.findIndex((t) => t.focus);
 		let oldTask = tasks[username].todos[index].text;
@@ -1549,7 +1488,7 @@ async function nextTask(username, task) {
 function isInt(value) {
 	return (
 		!isNaN(value) &&
-		parseInt(Number(value)) == value &&
+		parseInt(Number(value)) === value &&
 		!isNaN(parseInt(value, 10))
 	);
 }
@@ -1571,13 +1510,10 @@ async function clearOwnDoneTasks(username) {
 	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	let incompleteUserTasks = tasks[username].todos.filter((t) => !t.done);
@@ -1607,25 +1543,19 @@ async function markTaskDone(username, task) {
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	const incompleteTasks = tasks[username].todos.filter((t) => !t.done);
 
 	if (incompleteTasks.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no incomplete tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no incomplete tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	// match regex: integers separated by space e.g. '1 2 3 4'
@@ -1687,13 +1617,11 @@ async function markTaskDone(username, task) {
 		}
 
 		if (tasksMarkedComplete.length === 0) {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} invalid input`,
-					error: getResponse("specifyTaskIndex"),
-				},
-			};
+			return createErrorResponse(
+				`@${username} invalid input`,
+				getResponse("specifyTaskIndex"),
+				1
+			);
 		}
 
 		await DBHandler.set("tasks", tasks);
@@ -1736,24 +1664,20 @@ async function markTaskDone(username, task) {
 				// index is the first incomplete task
 				index = tasks[username].todos.findIndex((t) => !t.done);
 			} else {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 
 			// index out of range
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 		}
 
@@ -1800,13 +1724,10 @@ async function markAllTasksAsDone(username) {
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	for (const task of tasks[username].todos) {
@@ -1835,13 +1756,10 @@ async function markTaskUndone(username, task) {
 
 	// user does not have any tasks
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	const completedTasks = tasks[username].todos.filter((t) => t.done);
@@ -1895,13 +1813,11 @@ async function markTaskUndone(username, task) {
 		}
 
 		if (tasksMarkedUndone.length === 0) {
-			return {
-				status: 1,
-				body: {
-					"error message": `@${username} invalid input`,
-					error: getResponse("specifyTaskIndex"),
-				},
-			};
+			return createErrorResponse(
+				`@${username} invalid input`,
+				getResponse("specifyTaskIndex"),
+				1
+			);
 		}
 
 		await DBHandler.set("tasks", tasks);
@@ -1931,23 +1847,19 @@ async function markTaskUndone(username, task) {
 			} else if (completedTasks.length === 1) {
 				index = tasks[username].todos.findIndex((t) => t.done);
 			} else {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 
 			if (index < 0 || index > tasks[username].todos.length - 1) {
-				return {
-					status: 1,
-					body: {
-						"error message": `@${username} invalid input`,
-						error: getResponse("specifyTaskIndex"),
-					},
-				};
+				return createErrorResponse(
+					`@${username} invalid input`,
+					getResponse("specifyTaskIndex"),
+					1
+				);
 			}
 
 			tasks[username].todos[index].done = false;
@@ -1981,9 +1893,8 @@ async function markTaskUndone(username, task) {
 					failedTasks: "",
 				},
 			};
-		}
 	}
-}
+	}
 
 /**
  * Edits a specified task for a given user. If the task is successfully edited, the function returns an object with a status of 200, the original task, and the new task.
@@ -1999,13 +1910,10 @@ async function editTask(username, message) {
 	let noSpecifiedIndex = false;
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	let focusedTask = tasks[username].todos.find((t) => t.focus && !t.done);
@@ -2033,13 +1941,11 @@ async function editTask(username, message) {
 	}
 
 	if (isNaN(index)) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} invalid input`,
-				error: getResponse("specifyTaskIndex"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} invalid input`,
+			getResponse("specifyTaskIndex"),
+			1
+		);
 	}
 
 	let newTask = message.split(" ").slice(1).join(" ");
@@ -2050,23 +1956,19 @@ async function editTask(username, message) {
 
 	// if newTask is empty or whitespace, return 1
 	if (!newTask || !newTask.trim()) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} invalid input`,
-				error: getResponse("noTaskContent"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} invalid input`,
+			getResponse("noTaskContent"),
+			1
+		);
 	}
 
 	if (index < 0 || index > tasks[username].todos.length - 1) {
-		return {
-			status: 1,
-			body: {
-				"error message": `@${username} invalid input`,
-				error: getResponse("specifyTaskIndex"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} invalid input`,
+			getResponse("specifyTaskIndex"),
+			1
+		);
 	}
 
 	let originalTask = tasks[username].todos[index].text;
@@ -2101,13 +2003,10 @@ async function focusedTask(username) {
 	const tasks = await DBHandler.get("tasks");
 
 	if (!tasks[username] || tasks[username].todos.length === 0) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no tasks`,
-				error: getResponse("noTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no tasks`,
+			getResponse("noTask")
+		);
 	}
 
 	let focusedTask = tasks[username].todos.find((t) => t.focus);
@@ -2116,13 +2015,10 @@ async function focusedTask(username) {
 	let index = tasks[username].todos.findIndex((t) => t.focus);
 
 	if (!focusedTask) {
-		return {
-			status: 0,
-			body: {
-				"error message": `@${username} has no focused task`,
-				error: getResponse("noFocusedTask"),
-			},
-		};
+		return createErrorResponse(
+			`@${username} has no focused task`,
+			getResponse("noFocusedTask")
+		);
 	}
 
 	return {
@@ -2228,12 +2124,6 @@ async function logTask(username, userColor, task) {
 	};
 }
 
-/**
- * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
- *
- * @param {string} name - The name of the user whose tasks are to be checked.
- * @returns {Object} An object with a status and body. The status is 200 if the user has tasks, and the body contains a formatted string of the user's tasks. If the user has no tasks, the status indicates the error and the body contains an error message.
- */
 /**
  * Checks the tasks of a given user. If the user has tasks, the function returns an object with a status of 200 and a formatted string of the user's tasks. If the user has no tasks, the function returns an object with a status indicating the error and an error message.
  *
