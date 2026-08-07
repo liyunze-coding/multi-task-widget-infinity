@@ -1,6 +1,4 @@
 const commands = configs.commands;
-const openQuote = getSetting("openQuote");
-const closeQuote = getSetting("closeQuote");
 
 async function processCommand(user, command, message, flags, extra) {
 	params = {
@@ -124,7 +122,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task unfinished
 		let unfinishedResponse = getResponse("taskUnfinished");
 
 		params.task = `${openQuote}${unfinishRequest.body.markedTasks}${closeQuote}`;
@@ -143,7 +140,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task next
 		let nextResponse = getResponse("taskNext");
 
 		params.oldTask = `${openQuote}${nextRequest.body.oldTask}${closeQuote}`;
@@ -158,7 +154,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task logged
 		let loggedResponse = await getResponse("taskLogged");
 
 		params.task = `${openQuote}${logRequest.body.task}${closeQuote}`;
@@ -179,7 +174,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task focused
 		let focusedResponse = getResponse("nowTask");
 
 		params.task = `${openQuote}${focusRequest.body.focusedTask}${closeQuote}`;
@@ -193,7 +187,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task focused
 		let focusedResponse = getResponse("focusedTask");
 
 		params.task = `${openQuote}${focusedRequest.body.focusedTask}${closeQuote}`;
@@ -207,7 +200,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// task unfocused
 		let unfocusedResponse = getResponse("clearFocused");
 
 		respond(unfocusedResponse, params, extra.id);
@@ -220,15 +212,12 @@ async function processCommand(user, command, message, flags, extra) {
 		if (message === "") {
 			let checkRequest = await checkTasks(user, completed);
 			if (checkRequest.status !== 200) {
-				// no tasks
 				respond(checkRequest.body.error, params, extra.id);
 				return;
 			}
 
-			// array of filtered tasks
 			let filteredTasks = checkRequest.body.reply.split(" | ");
 
-			// respond every 10 tasks
 			for (let i = 0; i < filteredTasks.length; i += 10) {
 				let tasks = filteredTasks.slice(i, i + 10);
 				params.tasks = tasks
@@ -251,17 +240,14 @@ async function processCommand(user, command, message, flags, extra) {
 
 			let checkRequest = await checkTasks(mentioned, completed);
 
-			// array of incomplete tasks
 			let filteredTasks = checkRequest.body.reply.split(" | ");
 
 			if (checkRequest.status !== 200) {
-				// no tasks
 				respond(getResponse("noTaskA"), params, extra.id);
 
 				return;
 			}
 
-			// respond every 10 tasks
 			for (let i = 0; i < filteredTasks.length; i += 10) {
 				let tasks = filteredTasks.slice(i, i + 10);
 				params.tasks = tasks
@@ -293,7 +279,6 @@ async function processCommand(user, command, message, flags, extra) {
 		params.mentioned = mentioned;
 
 		if (clearUserTaskResponse.status === 0) {
-			// no tasks
 			respond(getResponse("noTaskA"), params, extra.id);
 			return;
 		}
@@ -322,7 +307,6 @@ async function processCommand(user, command, message, flags, extra) {
 		let clearOwnDoneResponse = await clearOwnDoneTasks(user);
 
 		if (clearOwnDoneResponse.status !== 200) {
-			// no tasks
 			respond(getResponse("noTask"), params, extra.id);
 			return;
 		}
@@ -352,7 +336,6 @@ async function processCommand(user, command, message, flags, extra) {
 			let listTaskResponse = await listTasks(user);
 
 			if (listTaskResponse.status !== 200) {
-				// no tasks
 				respond(listTaskResponse.body.error, params, extra.id);
 				return;
 			}
@@ -367,26 +350,20 @@ async function processCommand(user, command, message, flags, extra) {
 			let args = message.split(" ");
 			let anotherUser = true;
 
-			// separate separator from mentioned user
 			if (args[0].length === 1) {
-				// args[0] is separator
 				separator = args[0];
 				args.shift();
 			} else if (args[1] && args[1].length === 1) {
-				// args[1] is separator
 				separator = args[1];
 				args.splice(1, 1);
 			} else {
-				// default, no separator specified
 			}
 
 			let mentioned = args.join(" ").replace("@", "");
 
 			if (args.length === 0) {
-				// no user specified
 				mentioned = user;
 				anotherUser = false;
-				// noTaskA
 			}
 
 			if (mentioned.toLowerCase() === "id") {
@@ -397,7 +374,6 @@ async function processCommand(user, command, message, flags, extra) {
 			let listTaskResponse = await listTasks(mentioned, separator);
 
 			if (listTaskResponse.status !== 200 && anotherUser) {
-				// no tasks
 				respond(getResponse("noTaskA"), params, extra.id);
 				return;
 			} else if (listTaskResponse.status !== 200 && !anotherUser) {
@@ -612,7 +588,6 @@ async function processCommand(user, command, message, flags, extra) {
 			return;
 		}
 
-		// check if message is a number using regex
 		if (!/^\d+$/.test(message)) {
 			respond(getResponse("invalidNumber"), params, extra.id);
 			return;
