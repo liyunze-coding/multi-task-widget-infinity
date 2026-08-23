@@ -196,39 +196,36 @@ async function focusTask(username, userColor, task) {
 		);
 	}
 
-	let index = tasks[username].todos.findIndex(
-		(t) => t.text.toLowerCase() === task.toLowerCase()
-	);
+	let index = -1;
 
-	if (index === -1) {
-		if (isInt(task)) {
-			index = parseInt(task) - 1;
-		} else if (task !== "") {
-			let addTaskFunction = await _addTask(username, userColor, task);
-
-			if (addTaskFunction.status !== 200) {
-				return addTaskFunction;
-			}
-
-			index = addTaskFunction.body.addedTaskIndices[0].index;
-			tasks = await DBHandler.get("tasks");
-		} else if (incompleteTasks.length === 1) {
-			index = tasks[username].todos.findIndex((t) => !t.done);
-		}
-
-		if (index < 0 || index > tasks[username].todos.length - 1) {
-			return createErrorResponse(
-				`@${username} invalid input`,
-				getResponse("specifyFocusTask")
-			);
-		}
+	if (isInt(task)) {
+		index = parseInt(task, 10) - 1;
 	} else {
-		if (tasks[username].todos[index].done) {
-			return createErrorResponse(
-				`@${username} task is already completed`,
-				getResponse("specifyFocusTask")
-			);
+		index = tasks[username].todos.findIndex(
+			(t) => t.text.toLowerCase() === task.toLowerCase()
+		);
+
+		if (index === -1) {
+			if (task !== "") {
+				let addTaskFunction = await _addTask(username, userColor, task);
+
+				if (addTaskFunction.status !== 200) {
+					return addTaskFunction;
+				}
+
+				index = addTaskFunction.body.addedTaskIndices[0].index;
+				tasks = await DBHandler.get("tasks");
+			} else if (incompleteTasks.length === 1) {
+				index = tasks[username].todos.findIndex((t) => !t.done);
+			}
 		}
+	}
+
+	if (index < 0 || index > tasks[username].todos.length - 1) {
+		return createErrorResponse(
+			`@${username} invalid input`,
+			getResponse("specifyFocusTask")
+		);
 	}
 
 	let focusedTask = tasks[username].todos[index].text;
