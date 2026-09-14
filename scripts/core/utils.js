@@ -1,9 +1,5 @@
 function isInt(value) {
-	return (
-		!isNaN(value) &&
-		parseInt(Number(value)) === value &&
-		!isNaN(parseInt(value, 10))
-	);
+	return /^\d+$/.test(String(value).trim());
 }
 
 function createErrorResponse(errorMessage, errorType, status = 0) {
