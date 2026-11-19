@@ -7,8 +7,7 @@ const configs = (function () {
 		limit: 10, // integer
 		automaticDoneIndex: false, // true or false - Automatically assume first unfinished task is complete
 		taskName: "task", // string (singular)
-		pointsName: "points", // string
-		pointsPerTask: 10, // integer
+
 		taskSeparator: [";", ","], // array of strings
 		openQuote: '"', // string
 		closeQuote: '"', // string
@@ -16,7 +15,7 @@ const configs = (function () {
 		headerGoogleFont: true, // true: use google font, false: use system font
 		taskGoogleFont: true, // true: use google font, false: use system font
 		displayTaskCount: true, // true or false
-		enableTaskMaster: true, // true or false
+
 		hideWhenNoTasks: false, // true or false
 		taskCharacterLimit: 15, // integer
 		taskCharacterLimitEnabled: false, // true or false
@@ -242,18 +241,6 @@ const configs = (function () {
 			"!taskboardcount",
 		],
 
-		checkMyPointsCommands: [
-		],
-
-		// sync points with count commands - please add commands in the exact format
-		syncCountPointsCommands: [],
-
-		addPointsCommands: [],
-
-		reducePointsCommands: [],
-
-		setUserPointsCommands: [
-		],
 
 		setUserTaskCountCommands: [
 			"!setusertaskcount",
@@ -262,11 +249,6 @@ const configs = (function () {
 			"!setusertask",
 		],
 
-		leaderboardCommands: ["!leaderboard", "!lb", "!top"],
-
-		taskMasterCommands: ["!taskmaster", "!taskchampion"],
-
-		resetTaskMasterCommands: ["!resettaskmaster"],
 
 		// Help commands - please add commands in the exact format
 		helpCommands: [
@@ -296,7 +278,11 @@ const configs = (function () {
 			"!cleardone",
 		],
 
-		adminClearTasksCommands: ["!cleartasks"],
+		adminClearTasksCommands: ["!cleartasks", "!clearall"],
+
+		// Admin clear/count tasks older than N days - please add commands following the exact format
+		adminClearOldCommands: ["!clearold"],
+		adminCountOldCommands: ["!countold"],
 
 		adminResetBoardCountCommands: ["!resetboardcount", "!resetallcount"],
 
@@ -346,13 +332,16 @@ const configs = (function () {
 		clearTasksExceptBroadcaster:
 			"All {taskName}s have been cleared except for the streamer's, {user}!",
 		clearedTasks: "All {taskName}s have been cleared, {user}!",
+		clearedOld: "Cleared {count} {taskName}(s) that were {days} day(s) or older, {user}!",
+		countOld: "There are {count} {taskName}(s) that are {days} day(s) or older, {user}!",
+		invalidDays: "Please provide a valid number of days, e.g. !clearold 7, {user}",
 		adminDeleteTasks: "All of {mentioned}'s {taskName}s have been deleted",
 		clearedDone: "All completed {taskName}s have been cleared, {user}!",
-		clearedAll: "All {taskName}s and points have been cleared, {user}!",
+		clearedAll: "All {taskName}s and counts have been cleared, {user}!",
 
 		// Grouped by task completion responses
 		taskFinished:
-			"Good job on finishing the {taskName}(s) {task}, {user}! You have completed {doneCount} {taskName}(s) so far!", // {pointCount} {pointName} vars available
+			"Good job on finishing the {taskName}(s) {task}, {user}! You have completed {doneCount} {taskName}(s) so far!",
 		allTasksFinished:
 			"Good job on finishing all your {taskName}s, {user}! You have completed {doneCount} {taskName}(s) so far!",
 		taskUnfinished:
@@ -375,14 +364,6 @@ const configs = (function () {
 		noTask: "Looks like you don't have a task up there {user}",
 		noTaskA: "Looks like there is no task from that user there {user}",
 
-		// Grouped by point-related responses
-		checkMyPoints: "You have {pointCount} {pointName}, {user}!",
-		checkUserPoints: "{mentioned} has {pointCount} {pointName}, {user}!",
-		syncCountPoints: "Points have been synced with count, {user}!",
-		addPoints: "{mentioned} has been given {pointCount} {pointName}!",
-		reducePoints: "{mentioned} has lost {pointCount} {pointName}!",
-		setUserPoints: "{mentioned} now has {pointCount} {pointName}!",
-		specifyPoints: "Try specifying a number of points {user}",
 
 		// Grouped by count-related responses
 		checkYourCount:
@@ -392,13 +373,9 @@ const configs = (function () {
 		checkAllCount:
 			"Everyone has completed {doneCount} {taskName}(s) so far, {user}!",
 		noCountAll: "Looks like no one has completed a {taskName} yet {user}",
-		leaderboard: "Leaderboard: {leaderboard}",
+
 		setUserTaskCount: "{mentioned} now has {taskCount} tasks!",
 
-		// Grouped by taskmaster-related responses
-		taskMaster: "{user} Task Master: {taskMaster} [{taskMasterCount}]",
-		noTaskMaster: "No task master yet, {user}!",
-		resetTaskMaster: "Task Master has been reset, {user}!",
 
 		// Grouped by permission-related responses
 		notMod: "Permission denied, {user}; Mods only",

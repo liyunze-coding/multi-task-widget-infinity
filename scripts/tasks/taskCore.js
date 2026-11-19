@@ -72,6 +72,7 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 					text: t,
 					done: false,
 					focus: false,
+					addedTime: Date.now(),
 				});
 
 				let index = tasks[username].todos.length - 1;
@@ -143,6 +144,7 @@ async function _addTask(username, userColor, task, oneTaskOnly = false) {
 			text: task,
 			done: false,
 			focus: false,
+			addedTime: Date.now(),
 		});
 
 		await DBHandler.set("tasks", tasks);
@@ -595,7 +597,7 @@ async function nextTask(username, task) {
 		tasks[username].todos[index].done = true;
 		tasks[username].todos[index].focus = false;
 
-		tasks[username].todos.push({ text: task, done: false, focus: true });
+		tasks[username].todos.push({ text: task, done: false, focus: true, addedTime: Date.now() });
 		taskListMemory.totalTaskCount++;
 
 		await addDoneCount(username, 1);
@@ -621,7 +623,7 @@ async function nextTask(username, task) {
 		tasks[username].todos[index].done = true;
 		await addDoneCount(username, 1);
 
-		tasks[username].todos.push({ text: task, done: false, focus: false });
+		tasks[username].todos.push({ text: task, done: false, focus: false, addedTime: Date.now() });
 		taskListMemory.totalTaskCount++;
 
 		await DBHandler.set("tasks", tasks);
@@ -1172,7 +1174,7 @@ async function logTask(username, userColor, task) {
 			(!getSetting("taskCharacterLimitEnabled") ||
 				t.length <= getSetting("taskCharacterLimit"))
 		) {
-			tasks[username].todos.push({ text: t, done: true, focus: false });
+			tasks[username].todos.push({ text: t, done: true, focus: false, addedTime: Date.now() });
 
 			await addDoneCount(username, 1);
 

@@ -110,6 +110,41 @@ async function clearAll() {
 }
 
 /**
+ * Tasks created before timestamps were tracked have no addedTime and are never considered old.
+ */
+function isTaskOld(task, days) {
+	const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+	return typeof task.addedTime === "number" && task.addedTime <= cutoff;
+}
+
+async function countOldTasks(days) {
+	const tasks = await DBHandler.get("tasks");
+	let count = 0;
+	for (const user in tasks) {
+		if (!tasks[user].todos) continue;
+		if (user.toLowerCase() === "id") continue;
+		count += tasks[user].todos.filter((t) => isTaskOld(t, days)).length;
+	}
+	return count;
+}
+
+async function clearOldTasks(days) {
+	const tasks = await DBHandler.get("tasks");
+	let removed = 0;
+	for (const user in tasks) {
+		if (!tasks[user].todos) continue;
+		if (user.toLowerCase() === "id") continue;
+		const before = tasks[user].todos.length;
+		tasks[user].todos = tasks[user].todos.filter((t) => !isTaskOld(t, days));
+		removed += before - tasks[user].todos.length;
+	}
+	cancelAnimation();
+	await DBHandler.set("tasks", tasks);
+	await renderTaskListToDOM();
+	return removed;
+}
+
+/**
  * Clears all tasks from the local storage except for those belonging to specified streamer usernames.
  * After clearing, it also clears all done tasks, cancels any ongoing animation and re-renders the task list to the DOM.
  *

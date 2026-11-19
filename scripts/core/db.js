@@ -10,14 +10,7 @@ DB structure:
 	- users
 		- [username]:
 			- completeCount
-			- points
 	- totalCompleteCount
-
-- taskmaster
-	- users
-		- [username]:
-			- taskMasterCompleteCount
-	- startDate
 */
 
 let taskListMemory = {
@@ -135,16 +128,8 @@ async function resetDB() {
 }
 
 async function setupDB() {
-	const keys = ["tasks", "counts", "taskmaster"];
-	const defaultValues = [
-		{},
-		{ users: {} },
-		{
-			users: {},
-			startDate: new Date(),
-			taskMasterCompleteCount: 0,
-		},
-	];
+	const keys = ["tasks", "counts"];
+	const defaultValues = [{}, { users: {} }];
 
 	for (let i = 0; i < keys.length; i++) {
 		let value = await DBHandler.get(keys[i]);

@@ -11,7 +11,6 @@ const DB_CONFIG = Object.freeze({
 	STORE: "tasks",
 	KEY_TASKS: "tasks",
 	KEY_COUNTS: "counts",
-	KEY_TASKMASTER: "taskmaster",
 });
 
 const PAGINATION = Object.freeze({
